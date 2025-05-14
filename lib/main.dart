@@ -1,122 +1,140 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
+import 'input_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+// Define primary colors
+const Color riceSafeGreen = Color(0xFF00897B);
+const Color riceSafeDarkGreen = Color(0xFF00695C);
+const Color riceSafeLightBackground = Color(0xFFF8F9FA);
+const Color riceSafeTextPrimary = Color(0xFF212529);
+const Color riceSafeTextSecondary = Color(0xFF495057);
+const Color riceSafeBorderColor = Color(0xFFDEE2E6);
+
+void main() async {
+  try {
+    await dotenv.load(fileName: ".env");
+    print(".env file loaded successfully!");
+  } catch (e) {
+    print("Error loading .env file: $e");
+  }
+  runApp(const RiceSafeApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class RiceSafeApp extends StatelessWidget {
+  const RiceSafeApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'RiceSafe',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        primaryColor: riceSafeGreen,
+        scaffoldBackgroundColor: riceSafeLightBackground,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          iconTheme: const IconThemeData(color: riceSafeDarkGreen),
+          titleTextStyle: TextStyle(
+            color: riceSafeDarkGreen,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Roboto',
+          ),
         ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: riceSafeGreen,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              vertical: 15.0,
+              horizontal: 24.0,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Roboto',
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            elevation: 2,
+          ),
+        ),
+        textTheme: TextTheme(
+          // For section titles like "อัปโหลดรูปภาพ"
+          titleMedium: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: riceSafeTextPrimary,
+            fontFamily: 'Roboto',
+          ),
+          // For main content text
+          bodyLarge: TextStyle(
+            fontSize: 16.0,
+            color: riceSafeTextPrimary,
+            height: 1.5,
+            fontFamily: 'Roboto',
+          ),
+          // For secondary text
+          bodyMedium: TextStyle(
+            fontSize: 14.0,
+            color: riceSafeTextSecondary,
+            height: 1.4,
+            fontFamily: 'Roboto',
+          ),
+          // For the disease name on result screen
+          headlineSmall: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: riceSafeTextPrimary,
+            fontFamily: 'Roboto',
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          hintStyle: TextStyle(color: Colors.grey[400], fontFamily: 'Roboto'),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: riceSafeBorderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: riceSafeBorderColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: const BorderSide(color: riceSafeGreen, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 20.0,
+          ),
+        ),
+        cardTheme: CardTheme(
+          elevation: 1.5,
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          color: Colors.white,
+        ),
+        dividerTheme: DividerThemeData(
+          color: riceSafeBorderColor.withOpacity(0.7),
+          thickness: 0.8,
+        ),
+        iconTheme: const IconThemeData(color: riceSafeGreen),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: riceSafeGreen,
+          primary: riceSafeGreen,
+          secondary: riceSafeDarkGreen,
+          background: riceSafeLightBackground,
+          onPrimary: Colors.white,
+          onBackground: riceSafeTextPrimary,
+        ).copyWith(surface: Colors.white),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      debugShowCheckedModeBanner: false,
+      home: const InputScreen(),
     );
   }
 }
