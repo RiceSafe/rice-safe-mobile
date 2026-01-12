@@ -1,38 +1,40 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'package:ricesafe_app/core/config/app_config.dart';
-import 'result_screen.dart';
-import 'main.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/diagnosis_provider.dart';
+import '../../../../main.dart';
 
-class InputScreen extends StatefulWidget {
-  const InputScreen({super.key});
+class DiagnosisInputScreen extends ConsumerStatefulWidget {
+  const DiagnosisInputScreen({super.key});
 
   @override
-  State<InputScreen> createState() => _InputScreenState();
+  ConsumerState<DiagnosisInputScreen> createState() =>
+      _DiagnosisInputScreenState();
 }
 
-class _InputScreenState extends State<InputScreen> {
+class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  bool _isLoading = false;
 
-  final String _apiEndpoint = "${AppConfig.apiBaseUrl}/predict/";
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   void _resetInputFields() {
     setState(() {
       _selectedImage = null;
       _descriptionController.clear();
     });
+    ref.read(diagnosisProvider.notifier).reset();
   }
 
   Future<void> _pickImageFromGallery() async {
-    if (_isLoading) return;
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -43,7 +45,6 @@ class _InputScreenState extends State<InputScreen> {
         });
       }
     } catch (e) {
-      print("Error picking image: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e')),
@@ -52,66 +53,8 @@ class _InputScreenState extends State<InputScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _callPredictApi(
-    File imageFile,
-    String description,
-  ) async {
-    var uri = Uri.parse(_apiEndpoint);
-    var request = http.MultipartRequest('POST', uri);
-    request.fields['description'] = description;
-    var stream = http.ByteStream(imageFile.openRead());
-    stream.cast();
-    var length = await imageFile.length();
-    var multipartFile = http.MultipartFile(
-      'image',
-      stream,
-      length,
-      filename: imageFile.path.split('/').last,
-      contentType: MediaType('image', 'jpeg'),
-    );
-    request.files.add(multipartFile);
-    print("Sending request to: $uri");
-    try {
-      final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 90),
-      );
-      final response = await http.Response.fromStream(streamedResponse);
-      print("API Response Status (InputScreen): ${response.statusCode}");
-      print("API Response Body (InputScreen): ${response.body}");
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes))
-            as Map<String, dynamic>;
-      } else {
-        String errorMessage =
-            'ข้อผิดพลาดจากเซิร์ฟเวอร์: ${response.statusCode}.';
-        try {
-          var errorBody = jsonDecode(utf8.decode(response.bodyBytes));
-          if (errorBody is Map && errorBody.containsKey('detail')) {
-            errorMessage += ' ${errorBody['detail']}';
-          }
-        } catch (e) {
-          /* Ignore parsing error body */
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMessage)));
-        }
-        return null;
-      }
-    } catch (e) {
-      print('Exception during API call: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการเชื่อมต่อ: $e')),
-        );
-      }
-      return null;
-    }
-  }
-
-  void _diagnoseDisease() async {
-    String description = _descriptionController.text.trim();
+  void _diagnoseDisease() {
+    final String description = _descriptionController.text.trim();
     if (_selectedImage == null) {
       ScaffoldMessenger.of(
         context,
@@ -125,50 +68,30 @@ class _InputScreenState extends State<InputScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    Map<String, dynamic>? apiResponseData = await _callPredictApi(
-      _selectedImage!,
-      description,
-    );
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (apiResponseData != null) {
-        Map<String, dynamic> diseaseDataForScreen = {
-          'name': apiResponseData['prediction'] ?? 'N/A',
-          'confidence': apiResponseData['confidence'] ?? 'N/A',
-          'remedy': apiResponseData['remedy'] ?? 'ไม่มีข้อมูลวิธีการรักษา',
-          'treatment':
-              apiResponseData['treatment'] ?? 'ไม่มีข้อมูลการควบคุมดูแล',
-          'userUploadedImage': _selectedImage,
-          'diseaseSpecificImageUrl': apiResponseData['imageUrl'],
-        };
-
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => ResultScreen(diseaseData: diseaseDataForScreen),
-          ),
-        );
-
-        if (result == 'diagnose_new') {
-          _resetInputFields();
-        }
-      } else {
-        print("Failed to get data from API or widget unmounted.");
-      }
-    }
+    ref
+        .read(diagnosisProvider.notifier)
+        .diagnoseDisease(image: _selectedImage!, description: description);
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
+    ref.listen<DiagnosisState>(diagnosisProvider, (previous, next) {
+      if (next is DiagnosisSuccess) {
+        context.push('/diagnosis/result', extra: next.result).then((_) {
+          _resetInputFields();
+        });
+      } else if (next is DiagnosisError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.message), backgroundColor: Colors.red),
+        );
+      }
+    });
+
+    final state = ref.watch(diagnosisProvider);
+    final bool isLoading = state is DiagnosisLoading;
+
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
@@ -178,7 +101,7 @@ class _InputScreenState extends State<InputScreen> {
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
               return const Icon(
-                Icons.eco_rounded,
+                Icons.image,
                 color: riceSafeDarkGreen,
                 size: 28,
               );
@@ -237,7 +160,7 @@ class _InputScreenState extends State<InputScreen> {
                               const SizedBox(height: 20),
                               ElevatedButton(
                                 onPressed:
-                                    _isLoading ? null : _pickImageFromGallery,
+                                    isLoading ? null : _pickImageFromGallery,
                                 child: const Text('เลือกรูปภาพ'),
                               ),
                             ],
@@ -257,7 +180,7 @@ class _InputScreenState extends State<InputScreen> {
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed:
-                                    _isLoading
+                                    isLoading
                                         ? null
                                         : () {
                                           setState(() {
@@ -282,7 +205,7 @@ class _InputScreenState extends State<InputScreen> {
                 controller: _descriptionController,
                 maxLines: 4,
                 minLines: 3,
-                enabled: !_isLoading,
+                enabled: !isLoading,
                 decoration: const InputDecoration(
                   hintText: 'อธิบายลักษณะหรืออาการโรคที่พบเห็น',
                 ),
@@ -294,11 +217,11 @@ class _InputScreenState extends State<InputScreen> {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed:
-                  (_isLoading || _selectedImage == null)
+                  (isLoading || _selectedImage == null)
                       ? null
                       : _diagnoseDisease,
               child:
-                  _isLoading
+                  isLoading
                       ? const SizedBox(
                         width: 22,
                         height: 22,
@@ -329,11 +252,5 @@ class _InputScreenState extends State<InputScreen> {
         child,
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
   }
 }

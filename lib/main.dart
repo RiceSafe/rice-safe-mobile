@@ -1,8 +1,8 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
-import 'input_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ricesafe_app/core/router/app_router.dart';
 
-// Define primary colors
 const Color riceSafeGreen = Color(0xFF00897B);
 const Color riceSafeDarkGreen = Color(0xFF00695C);
 const Color riceSafeLightBackground = Color(0xFFF8F9FA);
@@ -17,7 +17,7 @@ void main() async {
   } catch (e) {
     print("Error loading .env file: $e");
   }
-  runApp(const RiceSafeApp());
+  runApp(const ProviderScope(child: RiceSafeApp()));
 }
 
 class RiceSafeApp extends StatelessWidget {
@@ -25,7 +25,7 @@ class RiceSafeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'RiceSafe',
       theme: ThemeData(
         primaryColor: riceSafeGreen,
@@ -120,7 +120,7 @@ class RiceSafeApp extends StatelessWidget {
           color: Colors.white,
         ),
         dividerTheme: DividerThemeData(
-          color: riceSafeBorderColor.withOpacity(0.7),
+          color: riceSafeBorderColor.withValues(alpha: 0.7),
           thickness: 0.8,
         ),
         iconTheme: const IconThemeData(color: riceSafeGreen),
@@ -128,13 +128,13 @@ class RiceSafeApp extends StatelessWidget {
           seedColor: riceSafeGreen,
           primary: riceSafeGreen,
           secondary: riceSafeDarkGreen,
-          background: riceSafeLightBackground,
+          surface: Colors.white,
           onPrimary: Colors.white,
-          onBackground: riceSafeTextPrimary,
-        ).copyWith(surface: Colors.white),
+          onSurface: riceSafeTextPrimary,
+        ),
       ),
       debugShowCheckedModeBanner: false,
-      home: const InputScreen(),
+      routerConfig: AppRouter.router,
     );
   }
 }

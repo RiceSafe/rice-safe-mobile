@@ -49,6 +49,22 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^5.2.1
 
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Networking
+  dio: ^5.7.0
+
+  # Functional Programming & Utilities
+  dartz: ^0.10.1
+  equatable: ^2.0.7
+
+  # Local Storage
+  hive_flutter: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
