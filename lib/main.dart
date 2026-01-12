@@ -111,7 +111,7 @@ class RiceSafeApp extends StatelessWidget {
             vertical: 20.0,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 1.5,
           margin: const EdgeInsets.symmetric(vertical: 8.0),
           shape: RoundedRectangleBorder(
