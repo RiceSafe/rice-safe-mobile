@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ricesafe_app/main.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:ricesafe_app/features/outbreak/data/mock_outbreak_data.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -159,28 +162,56 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                      child: Image.asset(
-                        'assets/mock/map_preview.png',
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 150,
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: Icon(
-                                Icons.map,
-                                size: 40,
-                                color: Colors.grey,
-                              ),
+                    SizedBox(
+                      height: 150,
+                      child: IgnorePointer(
+                        child: FlutterMap(
+                          options: const MapOptions(
+                            initialCenter: LatLng(15.8700, 100.9925),
+                            initialZoom: 5.0,
+                            interactionOptions: InteractionOptions(
+                              flags: InteractiveFlag.none,
                             ),
-                          );
-                        },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.ricesafe.app',
+                            ),
+                            MarkerLayer(
+                              markers:
+                                  mockOutbreaks.map((outbreak) {
+                                    return Marker(
+                                      point: LatLng(
+                                        outbreak.latitude,
+                                        outbreak.longitude,
+                                      ),
+                                      width: 12,
+                                      height: 12,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: getSeverityColor(
+                                            outbreak.severity,
+                                          ),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.black26,
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Padding(
