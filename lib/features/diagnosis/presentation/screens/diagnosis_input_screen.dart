@@ -111,6 +111,22 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
         title: const Text('RiceSafe'),
         centerTitle: false,
         titleSpacing: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: InkWell(
+              onTap: () {
+                GoRouter.of(context).push('/settings');
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: riceSafeGreen,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
