@@ -249,6 +249,8 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
                       : const Text('วินิจฉัยโรค'),
             ),
             const SizedBox(height: 20),
+            _buildHistorySection(textTheme),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -267,6 +269,94 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
         const SizedBox(height: 12),
         child,
       ],
+    );
+  }
+
+  Widget _buildHistorySection(TextTheme textTheme) {
+    // Mock Data for History
+    final historyItems = [
+      {
+        'name': 'โรคไหม้ (Rice Blast Disease)',
+        'date': '12 ม.ค. 2024',
+        'confidence': '95%',
+        'image': 'assets/mock/rice_blast.jpg',
+      },
+      {
+        'name': 'โรคใบจุดสีน้ำตาล (Brown Spot Disease)',
+        'date': '10 ม.ค. 2024',
+        'confidence': '88%',
+        'image': 'assets/mock/brown_spot.jpg',
+      },
+      {
+        'name': 'โรคขอบใบแห้ง (Bacterial Leaf Blight Disease)',
+        'date': '05 ม.ค. 2024',
+        'confidence': '92%',
+        'image': 'assets/mock/leaf_blight.jpg',
+      },
+    ];
+
+    return _buildSectionContainer(
+      title: 'การวิเคราะห์โรคล่าสุด',
+      titleStyle: textTheme.titleMedium!,
+      child: Column(
+        children:
+            historyItems.map((item) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(12),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      item['image']!,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 60,
+                          height: 60,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image, color: Colors.grey),
+                        );
+                      },
+                    ),
+                  ),
+                  title: Text(
+                    item['name']!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ความแม่นยำ: ${item["confidence"]}'),
+                        Text(
+                          'วันที่: ${item["date"]}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // Navigate to detail
+                  },
+                ),
+              );
+            }).toList(),
+      ),
     );
   }
 }
