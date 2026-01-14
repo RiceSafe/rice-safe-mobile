@@ -51,5 +51,7 @@
   <string>This app needs access to your camera to take photos for disease diagnosis.</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>This app needs access to your microphone if you choose to record video.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>This app needs access to speech recognition to convert your voice to text.</string>
 </dict>
 </plist>

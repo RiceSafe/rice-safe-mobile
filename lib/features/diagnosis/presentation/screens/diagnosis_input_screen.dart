@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../providers/diagnosis_provider.dart';
 import '../../../../main.dart';
 
@@ -19,6 +20,26 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+
+  // Speech to Text
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _speechEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speech.initialize(
+      onError: (val) => print('onError: $val'),
+      onStatus: (val) => print('onStatus: $val'),
+    );
+    setState(() {});
+  }
 
   @override
   void dispose() {
@@ -50,6 +71,28 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
           SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e')),
         );
       }
+    }
+  }
+
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => print('onStatus: $val'),
+        onError: (val) => print('onError: $val'),
+      );
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult:
+              (val) => setState(() {
+                _descriptionController.text = val.recognizedWords;
+              }),
+          localeId: 'th_TH',
+        );
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
     }
   }
 
@@ -217,13 +260,22 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
             _buildSectionContainer(
               title: 'อธิบายลักษณะหรืออาการโรค',
               titleStyle: textTheme.titleMedium!,
+              trailing: IconButton(
+                onPressed: _listen,
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? Colors.red : riceSafeGreen,
+                ),
+                tooltip: 'พูดเพื่อพิมพ์',
+              ),
               child: TextField(
                 controller: _descriptionController,
                 maxLines: 4,
                 minLines: 3,
                 enabled: !isLoading,
                 decoration: const InputDecoration(
-                  hintText: 'อธิบายลักษณะหรืออาการโรคที่พบเห็น',
+                  hintText:
+                      'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
                 ),
                 style: textTheme.bodyLarge?.copyWith(
                   color: riceSafeTextPrimary,
@@ -261,11 +313,18 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
     required String title,
     required Widget child,
     required TextStyle titleStyle,
+    Widget? trailing,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: titleStyle),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: titleStyle),
+            if (trailing != null) trailing,
+          ],
+        ),
         const SizedBox(height: 12),
         child,
       ],
