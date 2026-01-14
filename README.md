@@ -1,47 +1,84 @@
 # RiceSafe Mobile Application
 
-RiceSafe is a Flutter application designed to help users diagnose rice diseases by uploading an image of the rice disease and providing a description of its symptoms. The app communicates with a AI server(for now) for analysis and then presents the diagnosis and treatment recommendations.
+RiceSafe is a Flutter application designed to help users diagnose rice diseases by uploading an image of the rice disease and providing a description of its symptoms. The app communicates with an AI server for analysis and then presents the diagnosis and treatment recommendations.
 
 ## Features
 
 - **Image Upload:** Users can select an image of a rice plant from their gallery.
 - **Symptom Description:** Users can provide a textual description of the observed symptoms.
-- **AI-Powered Diagnosis:** Connected with the AI server to predict the rice disease.
-- **Diagnosis Results:** Displays the predicted disease result.
-- **Treatment Information:** Provides recommendations for "วิธีการรักษา" (Remedy) and "การควบคุมดูแล" (Treatment).
-- **User-Friendly Interface:** Clean and intuitive UI for ease of use.
+- **Speech-to-Text:** Users can use Thai voice input ("th_TH") to describe symptoms by tapping the microphone icon.
+- **AI-Powered Diagnosis:** Connected with the AI server to predict the rice disease and provide confidence scores.
+- **Diagnosis Results:** Displays the predicted disease result, remedy, and preventative treatment advice.
+- **Outbreak Map:** Interactive map showing disease outbreak locations and indicating the user's distance from them.
+- **Community Feed:** A social platform for farmers to share posts, view updates, and interact with the community.
+- **User-Friendly Interface:** Clean and intuitive UI with bottom navigation for easy access to all features.
 
 ## Tech Stack
 
-- **Framework:** Flutter
-- **Language:** Dart
-- **UI Components:** Material Design
+- **Framework:** Flutter (Dart)
+- **Architecture:** Clean Architecture (Feature-first)
+- **State Management:** Riverpod
+- **Routing:** GoRouter
+- **Networking:** Dio
+- **Maps:** flutter_map with latlong2
+- **Speech Recognition:** speech_to_text
 
-## Prerequisites
+## Architecture
 
-- **Flutter SDK** (latest stable version recommended)
-- An IDE like VS Code or Android Studio/IntelliJ IDEA for Flutter and Go development.
+RiceSafe follows a **Feature-first Clean Architecture** pattern to ensure scalability, maintainability, and testability.
+
+### Layers
+Each feature (e.g., `diagnosis`, `auth`) is self-contained with its own layers:
+1.  **Data Layer (`data`):**
+    *   **Data Sources:** Handle raw API calls (e.g., `DioClient`).
+    *   **Repositories:** Implement the interface to fetch data and handle errors.
+2.  **Domain/Model Layer (`models`):**
+    *   **Entities:** Pure Dart classes representing the data (e.g., `DiagnosisResult`).
+3.  **Presentation Layer (`presentation`):**
+    *   **Screens:** The UI widgets (e.g., `DiagnosisInputScreen`).
+    *   **Providers:** State management logic (Riverpod) connecting UI to Data.
+
+### Core
+Shared resources like Networking, Routing, and Configuration are located in `lib/core`.
 
 ## Project Structure
 
 ```
-ricesafe_app/
-├── android/                    # Android specific files
-├── assets/                     # Contains app assets like icons
-│   └── rice_icon.png
-├── ios/                        # iOS specific files
-├── ...
-├── lib
-│   ├── core
-│   │   └── config
-│   │       └── app_config.dart # App-wide configurations
-│   ├── input_screen.dart       # App entry point, theme
-│   ├── main.dart               # Screen for user input (image & description)
-│   └── result_screen.dart      # Screen to display diagnosis results
+rice-safe-mobile/
+├── lib/
+│   ├── core/
+│   │   ├── config/             # App-wide configurations (e.g. EnvConfig)
+│   │   ├── error/              # Failure and Exception classes
+│   │   ├── network/            # Dio client and Interceptors
+│   │   └── router/             # GoRouter configuration (`app_router.dart`)
+│   │
+│   ├── features/               # Feature-based modules
+│   │   ├── diagnosis/          # [Example Feature Structure]
+│   │   │   ├── data/
+│   │   │   │   ├── data_sources/   # Remote/Local data sources
+│   │   │   │   └── diagnosis_repository.dart
+│   │   │   ├── models/             # Data models (e.g. DiagnosisResult)
+│   │   │   └── presentation/
+│   │   │       ├── providers/      # Riverpod Notifiers
+│   │   │       └── screens/        # UI Widgets
+│   │   │
+│   │   ├── auth/               # Login & Register
+│   │   ├── community/          # Social Feed
+│   │   ├── home/               # Dashboard
+│   │   ├── library/            # Disease Encyclopedia
+│   │   ├── outbreak/           # Map & Alert System
+│   │   └── settings/           # Profile & Settings
+│   │
+│   └── main.dart               # App entry point
 ├── .env.example                # Example environment variables
-├── pubspec.yaml                # Flutter project dependencies and metadata
+├── pubspec.yaml                # Project dependencies
 └── README.md                   # This file
 ```
+
+## Prerequisites
+
+- **Flutter SDK** (latest stable version recommended)
+- An IDE like VS Code or Android Studio/IntelliJ IDEA for Flutter development.
 
 ## Installation Guide
 
@@ -57,34 +94,34 @@ ricesafe_app/
   cd rice-safe-mobile
   ```
 
-- **Create Environment File (`.env`):**
-  Create a file named `.env` in the `rice-safe-mobile/` directory.
-  This file is used by `flutter_dotenv` to load environment variables into the Flutter app.
+- **Update Dependencies:**
 
-  Or you can copy `.env.example`
+  ```bash
+  flutter pub get
+  ```
+
+- **Create Environment File (`.env`):**
+  Create a file named `.env` in the root directory.
 
   ```bash
   cp .env.example .env
   ```
 
   ```dotenv
-  # Flutter Environment Variables
-  # Copy this file to .env and set the correct values
-
-  # Base URL for Go backend API (Right now it's connected with AI Server)
-  API_BASE_URL=http://localhost:8000
+  # Base URL for AI Server
+  # If running on a physical device, use your machine's IP address (e.g., http://192.168.1.5:8000)
+  BASE_URL=http://<YOUR_IP>:8000
   ```
 
-- **Install Flutter Dependencies:**
+- **Run the Flutter App:**
 
   ```bash
-  flutter pub get
+  flutter run
   ```
 
-  - **Run the Flutter App:**
-  - Select a device/emulator.
-  - Run from your IDE or use the command:
-    ```bash
-    flutter run
-    ```
-  - If running on a physical device and the server is on `localhost`, ensure your device can reach your machine's IP address and update `API_BASE_URL` in Flutter's `.env` accordingly.
+## Permissions
+
+To use all features, the app requires the following permissions:
+- **Camera/Photo Library:** For uploading disease images.
+- **Microphone:** For speech-to-text symptom description.
+- **Location:** For calculating distance to outbreak areas.
