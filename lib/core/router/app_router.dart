@@ -9,6 +9,8 @@ import '../../features/community/presentation/screens/community_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/outbreak/presentation/screens/outbreak_screen.dart';
 import '../../features/main/presentation/screens/main_wrapper.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/register_screen.dart';
 
 // Private navigators
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -17,8 +19,15 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 class AppRouter {
   static final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/home',
+    initialLocation: '/login',
     routes: [
+      // Auth Routes
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+
       // ShellRoute pattern for Bottom Navigation
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

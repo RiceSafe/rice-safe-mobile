@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             // Greeting Section
             const Text(
-              'สวัสดี, ชาวนา',
+              'สวัสดี, ใบข้าว',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,

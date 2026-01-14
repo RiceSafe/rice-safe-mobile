@@ -40,7 +40,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'สมปอง บ้านนา',
+              'ใบข้าว บ้านนา',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -90,9 +90,9 @@ class SettingsScreen extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: () {
                   // Mock Logout
-                  GoRouter.of(context).go('/home');
+                  GoRouter.of(context).go('/login');
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ออกสู่ระบบสำเร็จ')),
+                    const SnackBar(content: Text('ออกจากระบบสำเร็จ')),
                   );
                 },
                 style: OutlinedButton.styleFrom(
