@@ -1,38 +1,61 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'package:ricesafe_app/core/config/app_config.dart';
-import 'result_screen.dart';
-import 'main.dart';
+import 'package:go_router/go_router.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../providers/diagnosis_provider.dart';
+import '../../../../main.dart';
 
-class InputScreen extends StatefulWidget {
-  const InputScreen({super.key});
+class DiagnosisInputScreen extends ConsumerStatefulWidget {
+  const DiagnosisInputScreen({super.key});
 
   @override
-  State<InputScreen> createState() => _InputScreenState();
+  ConsumerState<DiagnosisInputScreen> createState() =>
+      _DiagnosisInputScreenState();
 }
 
-class _InputScreenState extends State<InputScreen> {
+class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  bool _isLoading = false;
 
-  final String _apiEndpoint = "${AppConfig.apiBaseUrl}/predict/";
+  // Speech to Text
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _speechEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speech.initialize(
+      onError: (val) => print('onError: $val'),
+      onStatus: (val) => print('onStatus: $val'),
+    );
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   void _resetInputFields() {
     setState(() {
       _selectedImage = null;
       _descriptionController.clear();
     });
+    ref.read(diagnosisProvider.notifier).reset();
   }
 
   Future<void> _pickImageFromGallery() async {
-    if (_isLoading) return;
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -43,7 +66,6 @@ class _InputScreenState extends State<InputScreen> {
         });
       }
     } catch (e) {
-      print("Error picking image: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e')),
@@ -52,66 +74,30 @@ class _InputScreenState extends State<InputScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _callPredictApi(
-    File imageFile,
-    String description,
-  ) async {
-    var uri = Uri.parse(_apiEndpoint);
-    var request = http.MultipartRequest('POST', uri);
-    request.fields['description'] = description;
-    var stream = http.ByteStream(imageFile.openRead());
-    stream.cast();
-    var length = await imageFile.length();
-    var multipartFile = http.MultipartFile(
-      'image',
-      stream,
-      length,
-      filename: imageFile.path.split('/').last,
-      contentType: MediaType('image', 'jpeg'),
-    );
-    request.files.add(multipartFile);
-    print("Sending request to: $uri");
-    try {
-      final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 90),
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => print('onStatus: $val'),
+        onError: (val) => print('onError: $val'),
       );
-      final response = await http.Response.fromStream(streamedResponse);
-      print("API Response Status (InputScreen): ${response.statusCode}");
-      print("API Response Body (InputScreen): ${response.body}");
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes))
-            as Map<String, dynamic>;
-      } else {
-        String errorMessage =
-            'ข้อผิดพลาดจากเซิร์ฟเวอร์: ${response.statusCode}.';
-        try {
-          var errorBody = jsonDecode(utf8.decode(response.bodyBytes));
-          if (errorBody is Map && errorBody.containsKey('detail')) {
-            errorMessage += ' ${errorBody['detail']}';
-          }
-        } catch (e) {
-          /* Ignore parsing error body */
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMessage)));
-        }
-        return null;
-      }
-    } catch (e) {
-      print('Exception during API call: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการเชื่อมต่อ: $e')),
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult:
+              (val) => setState(() {
+                _descriptionController.text = val.recognizedWords;
+              }),
+          localeId: 'th_TH',
         );
       }
-      return null;
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
     }
   }
 
-  void _diagnoseDisease() async {
-    String description = _descriptionController.text.trim();
+  void _diagnoseDisease() {
+    final String description = _descriptionController.text.trim();
     if (_selectedImage == null) {
       ScaffoldMessenger.of(
         context,
@@ -125,50 +111,30 @@ class _InputScreenState extends State<InputScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    Map<String, dynamic>? apiResponseData = await _callPredictApi(
-      _selectedImage!,
-      description,
-    );
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (apiResponseData != null) {
-        Map<String, dynamic> diseaseDataForScreen = {
-          'name': apiResponseData['prediction'] ?? 'N/A',
-          'confidence': apiResponseData['confidence'] ?? 'N/A',
-          'remedy': apiResponseData['remedy'] ?? 'ไม่มีข้อมูลวิธีการรักษา',
-          'treatment':
-              apiResponseData['treatment'] ?? 'ไม่มีข้อมูลการควบคุมดูแล',
-          'userUploadedImage': _selectedImage,
-          'diseaseSpecificImageUrl': apiResponseData['imageUrl'],
-        };
-
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => ResultScreen(diseaseData: diseaseDataForScreen),
-          ),
-        );
-
-        if (result == 'diagnose_new') {
-          _resetInputFields();
-        }
-      } else {
-        print("Failed to get data from API or widget unmounted.");
-      }
-    }
+    ref
+        .read(diagnosisProvider.notifier)
+        .diagnoseDisease(image: _selectedImage!, description: description);
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
+    ref.listen<DiagnosisState>(diagnosisProvider, (previous, next) {
+      if (next is DiagnosisSuccess) {
+        context.push('/diagnosis/result', extra: next.result).then((_) {
+          _resetInputFields();
+        });
+      } else if (next is DiagnosisError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.message), backgroundColor: Colors.red),
+        );
+      }
+    });
+
+    final state = ref.watch(diagnosisProvider);
+    final bool isLoading = state is DiagnosisLoading;
+
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
@@ -178,7 +144,7 @@ class _InputScreenState extends State<InputScreen> {
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
               return const Icon(
-                Icons.eco_rounded,
+                Icons.image,
                 color: riceSafeDarkGreen,
                 size: 28,
               );
@@ -188,6 +154,22 @@ class _InputScreenState extends State<InputScreen> {
         title: const Text('RiceSafe'),
         centerTitle: false,
         titleSpacing: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: InkWell(
+              onTap: () {
+                GoRouter.of(context).push('/settings');
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: riceSafeGreen,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -237,7 +219,7 @@ class _InputScreenState extends State<InputScreen> {
                               const SizedBox(height: 20),
                               ElevatedButton(
                                 onPressed:
-                                    _isLoading ? null : _pickImageFromGallery,
+                                    isLoading ? null : _pickImageFromGallery,
                                 child: const Text('เลือกรูปภาพ'),
                               ),
                             ],
@@ -257,7 +239,7 @@ class _InputScreenState extends State<InputScreen> {
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed:
-                                    _isLoading
+                                    isLoading
                                         ? null
                                         : () {
                                           setState(() {
@@ -278,13 +260,22 @@ class _InputScreenState extends State<InputScreen> {
             _buildSectionContainer(
               title: 'อธิบายลักษณะหรืออาการโรค',
               titleStyle: textTheme.titleMedium!,
+              trailing: IconButton(
+                onPressed: _listen,
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? Colors.red : riceSafeGreen,
+                ),
+                tooltip: 'พูดเพื่อพิมพ์',
+              ),
               child: TextField(
                 controller: _descriptionController,
                 maxLines: 4,
                 minLines: 3,
-                enabled: !_isLoading,
+                enabled: !isLoading,
                 decoration: const InputDecoration(
-                  hintText: 'อธิบายลักษณะหรืออาการโรคที่พบเห็น',
+                  hintText:
+                      'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
                 ),
                 style: textTheme.bodyLarge?.copyWith(
                   color: riceSafeTextPrimary,
@@ -294,11 +285,11 @@ class _InputScreenState extends State<InputScreen> {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed:
-                  (_isLoading || _selectedImage == null)
+                  (isLoading || _selectedImage == null)
                       ? null
                       : _diagnoseDisease,
               child:
-                  _isLoading
+                  isLoading
                       ? const SizedBox(
                         width: 22,
                         height: 22,
@@ -310,6 +301,8 @@ class _InputScreenState extends State<InputScreen> {
                       : const Text('วินิจฉัยโรค'),
             ),
             const SizedBox(height: 20),
+            _buildHistorySection(textTheme),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -320,20 +313,109 @@ class _InputScreenState extends State<InputScreen> {
     required String title,
     required Widget child,
     required TextStyle titleStyle,
+    Widget? trailing,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: titleStyle),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: titleStyle),
+            if (trailing != null) trailing,
+          ],
+        ),
         const SizedBox(height: 12),
         child,
       ],
     );
   }
 
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
+  Widget _buildHistorySection(TextTheme textTheme) {
+    // Mock Data for History
+    final historyItems = [
+      {
+        'name': 'โรคไหม้ (Rice Blast Disease)',
+        'date': '12 ม.ค. 2024',
+        'confidence': '95%',
+        'image': 'assets/mock/rice_blast.jpg',
+      },
+      {
+        'name': 'โรคใบจุดสีน้ำตาล (Brown Spot Disease)',
+        'date': '10 ม.ค. 2024',
+        'confidence': '88%',
+        'image': 'assets/mock/brown_spot.jpg',
+      },
+      {
+        'name': 'โรคขอบใบแห้ง (Bacterial Leaf Blight Disease)',
+        'date': '05 ม.ค. 2024',
+        'confidence': '92%',
+        'image': 'assets/mock/leaf_blight.jpg',
+      },
+    ];
+
+    return _buildSectionContainer(
+      title: 'การวิเคราะห์โรคล่าสุด',
+      titleStyle: textTheme.titleMedium!,
+      child: Column(
+        children:
+            historyItems.map((item) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(12),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      item['image']!,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 60,
+                          height: 60,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image, color: Colors.grey),
+                        );
+                      },
+                    ),
+                  ),
+                  title: Text(
+                    item['name']!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ความแม่นยำ: ${item["confidence"]}'),
+                        Text(
+                          'วันที่: ${item["date"]}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // Navigate to detail
+                  },
+                ),
+              );
+            }).toList(),
+      ),
+    );
   }
 }

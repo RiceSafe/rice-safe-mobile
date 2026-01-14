@@ -49,6 +49,26 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^5.2.1
 
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Networking
+  dio: ^5.7.0
+
+  # Functional Programming & Utilities
+  dartz: ^0.10.1
+  equatable: ^2.0.7
+
+  # Local Storage
+  hive_flutter: ^1.1.0
+  intl: ^0.20.2
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  speech_to_text: ^7.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -74,6 +94,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/
+    - assets/mock/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

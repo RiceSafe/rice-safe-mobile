@@ -1,19 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'main.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../models/diagnosis_result.dart';
+import '../providers/diagnosis_provider.dart';
+import '../../../../main.dart';
 
-class ResultScreen extends StatelessWidget {
-  final Map<String, dynamic> diseaseData;
+class DiagnosisResultScreen extends ConsumerWidget {
+  final DiagnosisResult result;
 
-  const ResultScreen({super.key, required this.diseaseData});
+  const DiagnosisResultScreen({super.key, required this.result});
 
-  // Helper to split a string by newline and filter out empty lines
   List<String> _splitStringToList(String? text) {
     if (text == null || text.trim().isEmpty) {
       return [];
     }
     return text.split('\n').where((step) => step.trim().isNotEmpty).map((step) {
-      // Remove leading numbers like "1. ", "2. " etc.
       return step.trim().replaceFirst(RegExp(r'^\d+\.\s*'), '').trim();
     }).toList();
   }
@@ -54,7 +56,6 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  // This widget is now simplified as we directly use the string for "วิธีการรักษา" and "การควบคุมดูแล".
   Widget _buildMultiLineTextContent(BuildContext context, String text) {
     List<String> lines = _splitStringToList(text);
     if (lines.isEmpty) {
@@ -70,8 +71,8 @@ class ResultScreen extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0, top: 3.0),
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8.0, top: 3.0),
                         child: Icon(
                           Icons.check_circle,
                           size: 20,
@@ -94,17 +95,8 @@ class ResultScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
-    final String diseaseName = diseaseData['name'] ?? 'ไม่พบชื่อโรค';
-
-    final File? userUploadedImage = diseaseData['userUploadedImage'] as File?;
-    final String? diseaseSpecificImageUrl =
-        diseaseData['diseaseSpecificImageUrl'] as String?;
-
-    final String remedy = diseaseData['remedy'] ?? 'ไม่มีข้อมูล';
-
-    final String treatment = diseaseData['treatment'] ?? 'ไม่มีข้อมูล';
 
     return Scaffold(
       appBar: AppBar(
@@ -115,7 +107,7 @@ class ResultScreen extends StatelessWidget {
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
               return const Icon(
-                Icons.eco_rounded,
+                Icons.image,
                 color: riceSafeDarkGreen,
                 size: 28,
               );
@@ -141,7 +133,7 @@ class ResultScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    diseaseName,
+                    result.name,
                     style: textTheme.headlineSmall?.copyWith(
                       color: riceSafeTextPrimary,
                     ),
@@ -153,19 +145,19 @@ class ResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Display Image: Prioritize API's specific disease image, fallback to user's uploaded image
-            if (diseaseSpecificImageUrl != null &&
-                diseaseSpecificImageUrl.isNotEmpty)
+            // Display Image Logic
+            if (result.diseaseSpecificImageUrl != null &&
+                result.diseaseSpecificImageUrl!.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12.0),
                 child: Image.network(
-                  diseaseSpecificImageUrl,
+                  result.diseaseSpecificImageUrl!,
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.cover,
                   errorBuilder:
                       (c, e, s) => _buildUserUploadedImageOrPlaceholder(
-                        userUploadedImage,
+                        result.userUploadedImage,
                       ),
                   loadingBuilder: (c, child, progress) {
                     if (progress == null) return child;
@@ -188,11 +180,11 @@ class ResultScreen extends StatelessWidget {
                   },
                 ),
               )
-            else if (userUploadedImage != null)
+            else if (result.userUploadedImage != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12.0),
                 child: Image.file(
-                  userUploadedImage,
+                  result.userUploadedImage!,
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.cover,
@@ -202,24 +194,7 @@ class ResultScreen extends StatelessWidget {
             else
               _buildPlaceholderImage(),
 
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                icon: Icon(
-                  Icons.share_outlined,
-                  color: riceSafeGreen.withOpacity(0.8),
-                ),
-                label: Text(
-                  'Share',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: riceSafeGreen.withOpacity(0.8),
-                  ),
-                ),
-                onPressed: () {},
-              ),
-            ),
-            const Divider(height: 20),
+            const SizedBox(height: 24),
 
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -236,14 +211,14 @@ class ResultScreen extends StatelessWidget {
               context,
               icon: Icons.science_outlined,
               title: 'วิธีการรักษา',
-              content: _buildMultiLineTextContent(context, remedy),
+              content: _buildMultiLineTextContent(context, result.remedy),
             ),
 
             _buildSectionCard(
               context,
               icon: Icons.eco_outlined,
               title: 'การควบคุมดูแล',
-              content: _buildMultiLineTextContent(context, treatment),
+              content: _buildMultiLineTextContent(context, result.treatment),
             ),
 
             const SizedBox(height: 30),
@@ -252,7 +227,8 @@ class ResultScreen extends StatelessWidget {
                 icon: const Icon(Icons.add_a_photo_outlined),
                 label: const Text('วินิจฉัยรายการใหม่'),
                 onPressed: () {
-                  Navigator.of(context).pop('diagnose_new');
+                  ref.read(diagnosisProvider.notifier).reset();
+                  context.pop();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: riceSafeDarkGreen,
@@ -266,7 +242,6 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  // Helper for fallback image display logic
   Widget _buildUserUploadedImageOrPlaceholder(File? userUploadedImage) {
     if (userUploadedImage != null) {
       return ClipRRect(
