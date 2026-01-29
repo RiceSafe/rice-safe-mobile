@@ -20,6 +20,7 @@ class _OutbreakScreenState extends State<OutbreakScreen>
   final Distance distance = const Distance();
   final MapController _mapController = MapController();
   double _currentZoom = 6.0;
+  bool _onlyVerified = true;
 
   @override
   void initState() {
@@ -147,35 +148,113 @@ class _OutbreakScreenState extends State<OutbreakScreen>
                   ),
                 ),
                 // Outbreak Markers
-                ...mockOutbreaks.map((outbreak) {
-                  return Marker(
-                    point: LatLng(outbreak.latitude, outbreak.longitude),
-                    width: 80,
-                    height: 80,
-                    child: GestureDetector(
-                      onTap: () => _showOutbreakDialog(context, outbreak),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            color: getSeverityColor(outbreak.severity),
-                            size: 40,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black45,
-                                blurRadius: 5,
-                                offset: Offset(0, 2),
+                ...mockOutbreaks
+                    .where((o) => !_onlyVerified || o.isVerified)
+                    .map((outbreak) {
+                      return Marker(
+                        point: LatLng(outbreak.latitude, outbreak.longitude),
+                        width: 80,
+                        height: 80,
+                        child: GestureDetector(
+                          onTap: () => _showOutbreakDialog(context, outbreak),
+                          child: Stack(
+                            alignment: Alignment.topCenter,
+                            children: [
+                              Column(
+                                children: [
+                                  Icon(
+                                    Icons.location_on,
+                                    color: getSeverityColor(outbreak.severity),
+                                    size: 40,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.black45,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
+                              if (outbreak.isVerified)
+                                Positioned(
+                                  top: 0,
+                                  right: 20,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 16,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Positioned(
+                                  top: 0,
+                                  right: 20,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.help,
+                                      color: Colors.orange,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
+                        ),
+                      );
+                    }),
               ],
             ),
           ],
+        ),
+        // Filter Toggle
+        Positioned(
+          top: 20,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'เฉพาะที่ตรวจสอบแล้ว',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Switch(
+                  value: _onlyVerified,
+                  onChanged: (value) {
+                    setState(() {
+                      _onlyVerified = value;
+                    });
+                  },
+                  activeColor: riceSafeGreen,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ],
+            ),
+          ),
         ),
         // Zoom Controls
         Positioned(
@@ -216,111 +295,180 @@ class _OutbreakScreenState extends State<OutbreakScreen>
   }
 
   Widget _buildListTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: mockOutbreaks.length,
-      itemBuilder: (context, index) {
-        final outbreak = mockOutbreaks[index];
-        final double dist = distance.as(
-          LengthUnit.Kilometer,
-          mockUserLocation,
-          LatLng(outbreak.latitude, outbreak.longitude),
-        );
+    final filteredOutbreaks =
+        mockOutbreaks.where((o) => !_onlyVerified || o.isVerified).toList();
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Column(
+      children: [
+        // Filter Toggle
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: Colors.grey[50],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Text(
+                'เฉพาะที่ตรวจสอบแล้ว',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: _onlyVerified,
+                onChanged: (value) {
+                  setState(() {
+                    _onlyVerified = value;
+                  });
+                },
+                activeColor: riceSafeGreen,
+              ),
+            ],
           ),
-          child: Padding(
+        ),
+        Expanded(
+          child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        outbreak.diseaseName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: getSeverityColor(
-                          outbreak.severity,
-                        ).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: getSeverityColor(outbreak.severity),
-                        ),
-                      ),
-                      child: Text(
-                        getSeverityText(outbreak.severity),
-                        style: TextStyle(
-                          color: getSeverityColor(outbreak.severity),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+            itemCount: filteredOutbreaks.length,
+            itemBuilder: (context, index) {
+              final outbreak = filteredOutbreaks[index];
+              final double dist = distance.as(
+                LengthUnit.Kilometer,
+                mockUserLocation,
+                LatLng(outbreak.latitude, outbreak.longitude),
+              );
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${outbreak.district}, ${outbreak.province}',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              outbreak.diseaseName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: getSeverityColor(
+                                outbreak.severity,
+                              ).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: getSeverityColor(outbreak.severity),
+                              ),
+                            ),
+                            child: Text(
+                              getSeverityText(outbreak.severity),
+                              style: TextStyle(
+                                color: getSeverityColor(outbreak.severity),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Verification Status
+                      if (outbreak.isVerified)
+                        Row(
+                          children: const [
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 16,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'ตรวจสอบแล้วโดยผู้เชี่ยวชาญ',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          children: const [
+                            Icon(Icons.help, color: Colors.orange, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'รอการตรวจสอบ',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${outbreak.district}, ${outbreak.province}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(outbreak.date),
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.directions_car,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${dist.toStringAsFixed(1)} กม.',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('dd MMM yyyy').format(outbreak.date),
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      Icons.directions_car,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${dist.toStringAsFixed(1)} กม.',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -336,20 +484,89 @@ class _OutbreakScreenState extends State<OutbreakScreen>
       builder:
           (context) => AlertDialog(
             title: Text(outbreak.diseaseName),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('พื้นที่: ${outbreak.district}, ${outbreak.province}'),
-                Text('ความรุนแรง: ${getSeverityText(outbreak.severity)}'),
-                Text(
-                  'วันที่: ${DateFormat('dd MMM yyyy').format(outbreak.date)}',
-                ),
-                const SizedBox(height: 10),
-                Text('ระยะทาง: ${dist.toStringAsFixed(1)} กม.'),
-              ],
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: [
+                  Text('พื้นที่: ${outbreak.district}, ${outbreak.province}'),
+                  const SizedBox(height: 4),
+                  Text('ความรุนแรง: ${getSeverityText(outbreak.severity)}'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'วันที่: ${DateFormat('dd MMM yyyy').format(outbreak.date)}',
+                  ),
+                  const SizedBox(height: 4),
+                  Text('ระยะทาง: ${dist.toStringAsFixed(1)} กม.'),
+                  if (outbreak.isVerified) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: const [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'ตรวจสอบแล้วโดยผู้เชี่ยวชาญ',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: const [
+                        Icon(Icons.help, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'รอการตรวจสอบ',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (outbreak.imagePath != null) ...[
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        outbreak.imagePath!,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 150,
+                            color: Colors.grey[200],
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.broken_image, color: Colors.grey),
+                                SizedBox(height: 4),
+                                Text('ไม่สามารถโหลดรูปภาพได้'),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
             actions: [
+              if (!outbreak.isVerified)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('แจ้งปัญหาเรียบร้อยแล้ว')),
+                    );
+                  },
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('แจ้งปัญหา'),
+                ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('ปิด'),

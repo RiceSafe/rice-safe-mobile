@@ -11,6 +11,8 @@ class OutbreakLocation {
   final Severity severity;
   final double latitude;
   final double longitude;
+  final bool isVerified;
+  final String? imagePath;
 
   OutbreakLocation({
     required this.id,
@@ -21,6 +23,8 @@ class OutbreakLocation {
     required this.severity,
     required this.latitude,
     required this.longitude,
+    this.isVerified = false,
+    this.imagePath,
   });
 }
 
@@ -35,6 +39,8 @@ final List<OutbreakLocation> mockOutbreaks = [
     severity: Severity.high,
     latitude: 18.9,
     longitude: 98.9,
+    isVerified: true,
+    imagePath: 'assets/mock/rice_blast.jpg',
   ),
   OutbreakLocation(
     id: '2',
@@ -45,6 +51,8 @@ final List<OutbreakLocation> mockOutbreaks = [
     severity: Severity.moderate,
     latitude: 14.5,
     longitude: 100.1,
+    isVerified: true,
+    imagePath: 'assets/mock/leaf_blight.jpg',
   ),
   OutbreakLocation(
     id: '3',
@@ -55,6 +63,8 @@ final List<OutbreakLocation> mockOutbreaks = [
     severity: Severity.high,
     latitude: 14.0,
     longitude: 100.6,
+    isVerified: false,
+    imagePath: 'assets/mock/leaf_streak.jpg',
   ),
   OutbreakLocation(
     id: '4',
@@ -65,6 +75,8 @@ final List<OutbreakLocation> mockOutbreaks = [
     severity: Severity.low,
     latitude: 16.4,
     longitude: 102.1,
+    isVerified: false,
+    imagePath: 'assets/mock/brown_spot.jpg',
   ),
 ];
 
