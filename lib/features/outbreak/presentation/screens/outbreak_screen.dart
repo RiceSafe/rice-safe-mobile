@@ -342,126 +342,132 @@ class _OutbreakScreenState extends State<OutbreakScreen>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              outbreak.diseaseName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: getSeverityColor(
-                                outbreak.severity,
-                              ).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: getSeverityColor(outbreak.severity),
-                              ),
-                            ),
-                            child: Text(
-                              getSeverityText(outbreak.severity),
-                              style: TextStyle(
-                                color: getSeverityColor(outbreak.severity),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Verification Status
-                      if (outbreak.isVerified)
+                child: InkWell(
+                  onTap: () => _showOutbreakDialog(context, outbreak),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Row(
-                          children: const [
-                            Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                              size: 16,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                outbreak.diseaseName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            SizedBox(width: 4),
-                            Text(
-                              'ตรวจสอบแล้วโดยผู้เชี่ยวชาญ',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: getSeverityColor(
+                                  outbreak.severity,
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: getSeverityColor(outbreak.severity),
+                                ),
+                              ),
+                              child: Text(
+                                getSeverityText(outbreak.severity),
+                                style: TextStyle(
+                                  color: getSeverityColor(outbreak.severity),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ],
-                        )
-                      else
+                        ),
+                        const SizedBox(height: 8),
+                        // Verification Status
+                        if (outbreak.isVerified)
+                          Row(
+                            children: const [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 16,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'ตรวจสอบแล้วโดยผู้เชี่ยวชาญ',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Row(
+                            children: const [
+                              Icon(Icons.help, color: Colors.orange, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                'รอการตรวจสอบ',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 8),
                         Row(
-                          children: const [
-                            Icon(Icons.help, color: Colors.orange, size: 16),
-                            SizedBox(width: 4),
+                          children: [
+                            const Icon(
+                              Icons.location_on_outlined,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
                             Text(
-                              'รอการตรวจสอบ',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontSize: 12,
+                              '${outbreak.district}, ${outbreak.province}',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              DateFormat('dd MMM yyyy').format(outbreak.date),
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                            const Spacer(),
+                            Icon(
+                              Icons.directions_car,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${dist.toStringAsFixed(1)} กม.',
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${outbreak.district}, ${outbreak.province}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(outbreak.date),
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            Icons.directions_car,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${dist.toStringAsFixed(1)} กม.',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
