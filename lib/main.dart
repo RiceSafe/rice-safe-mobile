@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:ricesafe_app/core/router/app_router.dart';
 
 const Color riceSafeGreen = Color(0xFF00897B);
@@ -11,9 +12,18 @@ const Color riceSafeTextSecondary = Color(0xFF495057);
 const Color riceSafeBorderColor = Color(0xFFDEE2E6);
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: ".env");
     print(".env file loaded successfully!");
+
+    // Initialize LINE SDK
+    final lineChannelId = dotenv.env['LINE_CHANNEL_ID'];
+    if (lineChannelId != null) {
+      await LineSDK.instance.setup(lineChannelId).then((_) {
+        print("LineSDK Prepared");
+      });
+    }
   } catch (e) {
     print("Error loading .env file: $e");
   }
