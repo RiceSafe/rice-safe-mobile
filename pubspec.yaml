@@ -69,6 +69,10 @@ dependencies:
   latlong2: ^0.9.1
   speech_to_text: ^7.3.0
 
+  # OAuth
+  google_sign_in: ^6.2.1
+  flutter_line_sdk: ^2.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

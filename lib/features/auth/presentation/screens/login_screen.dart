@@ -1,21 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:ricesafe_app/main.dart';
+import '../providers/auth_state.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
 
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
+
+  Future<void> _loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken != null) {
+        await ref.read(authStateProvider.notifier).loginWithOAuth('google', idToken);
+        if (mounted && ref.read(authStateProvider).token != null) {
+          context.go('/home');
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Login Error: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loginWithLine() async {
+    try {
+      final result = await LineSDK.instance.login(scopes: ["profile", "openid", "email"]);
+      // In flutter_line_sdk, the raw ID token is in result.accessToken.idToken if it's a string,
+      // but some versions return a Map. We want the raw JWT string.
+      final dynamic rawIdToken = result.accessToken.idToken;
+      final String? idToken = rawIdToken is String ? rawIdToken : result.accessToken.data['id_token'] as String?;
+
+      if (idToken != null) {
+        await ref.read(authStateProvider.notifier).loginWithOAuth('line', idToken);
+        if (mounted && ref.read(authStateProvider).token != null) {
+          context.go('/home');
+        }
+      } else {
+        throw Exception("Could not retrieve ID Token from LINE");
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('LINE Login Error: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authStateProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -25,7 +83,14 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (authState.isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16.0),
+                    child: LinearProgressIndicator(color: riceSafeGreen),
+                  ),
+                
                 // Logo Section
+                const SizedBox(height: 20),
                 Image.asset(
                   'assets/rice_icon.png',
                   height: 120,
@@ -50,7 +115,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   'เข้าสู่ระบบเพื่อใช้งานแอพพลิเคชั่น',
                   style: TextStyle(color: Colors.grey[600], fontSize: 16),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 40),
+
+                if (authState.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      authState.error!,
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
 
                 // Email Field
                 _buildLabel('อีเมล'),
@@ -97,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                // Forgot Password (Optional visual)
+                // Forgot Password
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -109,16 +184,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Navigate to Home
-                      GoRouter.of(context).go('/home');
+                    onPressed: authState.isLoading ? null : () {
+                      // Normal login logic would go here
+                      context.go('/home');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: riceSafeGreen,
@@ -127,18 +202,85 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'เข้าสู่ระบบ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: authState.isLoading 
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'เข้าสู่ระบบ',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   ),
                 ),
 
                 const SizedBox(height: 24),
+
+                // Divider
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey[300])),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('หรือเข้าสู่ระบบด้วย', style: TextStyle(color: Colors.grey[600])),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey[300])),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Social Login Buttons
+                Row(
+                  children: [
+                    // LINE Button
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: authState.isLoading ? null : _loginWithLine,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey[300]!),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.chat_bubble, color: Color(0xFF00B900), size: 20),
+                            const SizedBox(width: 8),
+                            const Text('LINE', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Google Button
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: authState.isLoading ? null : _loginWithGoogle,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey[300]!),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                            const SizedBox(width: 4),
+                            const Text('Google', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
 
                 // Register Link
                 Row(

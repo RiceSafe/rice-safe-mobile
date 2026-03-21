@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Mocks
 class MockGoRouter extends Mock implements GoRouter {}
@@ -41,6 +42,9 @@ Future<void> pumpRouterApp(
 }) async {
   final mockRouter = router ?? MockGoRouter();
   
+  // Initialize dotenv for tests to avoid NotInitializedError
+  dotenv.testLoad(fileInput: 'BASE_URL=http://localhost:8080/api\n');
+
   await tester.pumpWidget(
     ProviderScope(
       child: MaterialApp(
