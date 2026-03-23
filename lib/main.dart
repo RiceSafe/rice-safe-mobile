@@ -1,8 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:ricesafe_app/core/config/env_config.dart';
 import 'package:ricesafe_app/core/router/app_router.dart';
+import 'package:ricesafe_app/features/auth/data/auth_local_storage.dart';
+import 'package:ricesafe_app/features/auth/presentation/providers/auth_state.dart';
+import 'package:ricesafe_app/features/auth/presentation/providers/auth_token_provider.dart';
+import 'package:ricesafe_app/features/settings/presentation/providers/farm_location_provider.dart';
 
 const Color riceSafeGreen = Color(0xFF00897B);
 const Color riceSafeDarkGreen = Color(0xFF00695C);
@@ -13,28 +22,66 @@ const Color riceSafeBorderColor = Color(0xFFDEE2E6);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load(fileName: ".env");
-    print(".env file loaded successfully!");
+  await Hive.initFlutter();
+  await Hive.openBox<String>(AuthLocalStorage.boxName);
 
-    // Initialize LINE SDK
-    final lineChannelId = dotenv.env['LINE_CHANNEL_ID'];
-    if (lineChannelId != null) {
-      await LineSDK.instance.setup(lineChannelId).then((_) {
-        print("LineSDK Prepared");
-      });
-    }
-  } catch (e) {
-    print("Error loading .env file: $e");
+  String? storedToken;
+  try {
+    storedToken = Hive.box<String>(AuthLocalStorage.boxName).get(AuthLocalStorage.keyToken);
+  } catch (_) {
+    storedToken = null;
   }
-  runApp(const ProviderScope(child: RiceSafeApp()));
+
+  try {
+    await dotenv.load(fileName: '.env');
+    if (kDebugMode) {
+      debugPrint('Env: .env loaded');
+    }
+
+    final lineChannelId = EnvConfig.lineChannelId;
+    if (lineChannelId != null) {
+      await LineSDK.instance.setup(lineChannelId);
+      if (kDebugMode) {
+        debugPrint('LineSDK: setup complete');
+      }
+    }
+  } catch (e, st) {
+    if (kDebugMode) {
+      debugPrint('Env: failed to load .env — $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
+  runApp(
+    ProviderScope(
+      overrides: [
+        authTokenProvider.overrideWith((ref) => storedToken),
+      ],
+      child: const RiceSafeApp(),
+    ),
+  );
 }
 
-class RiceSafeApp extends StatelessWidget {
+class RiceSafeApp extends ConsumerStatefulWidget {
   const RiceSafeApp({super.key});
 
   @override
+  ConsumerState<RiceSafeApp> createState() => _RiceSafeAppState();
+}
+
+class _RiceSafeAppState extends ConsumerState<RiceSafeApp> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(authStateProvider.notifier).restoreSession();
+      // Warm farm location from SharedPreferences into [FarmLocationBridge] early.
+      unawaited(ref.read(farmLocationProvider.future));
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final router = ref.watch(goRouterProvider);
     return MaterialApp.router(
       title: 'RiceSafe',
       theme: ThemeData(
@@ -144,7 +191,7 @@ class RiceSafeApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      routerConfig: AppRouter.router,
+      routerConfig: router,
     );
   }
 }
