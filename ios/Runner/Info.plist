@@ -38,6 +38,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RiceSafe ใช้ตำแหน่งของคุณเพื่อเลื่อนแผนที่ไปที่ตำแหน่งปัจจุบันเมื่อเลือกแปลงนาบนแผนที่</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to your camera to take photos for disease diagnosis.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -67,6 +69,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -88,6 +94,7 @@
 	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>mailto</string>
 		<string>lineauth2</string>
 		<string>line</string>
 		<string>lineapi</string>
