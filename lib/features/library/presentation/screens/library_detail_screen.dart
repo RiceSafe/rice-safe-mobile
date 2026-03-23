@@ -1,18 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ricesafe_app/core/error/user_error_message.dart';
 import 'package:ricesafe_app/main.dart';
-import 'package:ricesafe_app/features/library/data/mock_library_data.dart';
+import 'package:ricesafe_app/features/library/data/models/library_disease.dart';
+import 'package:ricesafe_app/features/library/presentation/providers/disease_library_provider.dart';
 
-class LibraryDetailScreen extends StatelessWidget {
-  final DiseaseDetail disease;
+class LibraryDetailScreen extends ConsumerWidget {
+  const LibraryDetailScreen({super.key, required this.diseaseId});
 
-  const LibraryDetailScreen({super.key, required this.disease});
+  final String diseaseId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(diseaseDetailProvider(diseaseId));
+
+    return async.when(
+      data: (disease) => _LibraryDetailBody(disease: disease),
+      loading: () => Scaffold(
+        appBar: AppBar(
+          backgroundColor: riceSafeGreen,
+          leading: IconButton(
+            icon: const CircleAvatar(
+              backgroundColor: Colors.black45,
+              child: Icon(Icons.arrow_back, color: Colors.white),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('กำลังโหลด...'),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: riceSafeGreen,
+          leading: IconButton(
+            icon: const CircleAvatar(
+              backgroundColor: Colors.black45,
+              child: Icon(Icons.arrow_back, color: Colors.white),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('ข้อผิดพลาด'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  userFacingMessage(
+                    e,
+                    contextFallback: 'ไม่พบข้อมูลโรค',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.red[800]),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () =>
+                      ref.invalidate(diseaseDetailProvider(diseaseId)),
+                  child: const Text('ลองอีกครั้ง'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryDetailBody extends StatelessWidget {
+  const _LibraryDetailBody({required this.disease});
+
+  final LibraryDisease disease;
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [const Tab(text: 'ข้อมูลทั่วไป')];
     final List<Widget> tabViews = [_buildGeneralTab()];
 
-    // Symptoms Tab
     if (disease.symptoms.isNotEmpty) {
       tabs.add(const Tab(text: 'อาการ'));
       tabViews.add(
@@ -20,7 +88,6 @@ class LibraryDetailScreen extends StatelessWidget {
       );
     }
 
-    // Prevention Tab
     if (disease.prevention.isNotEmpty) {
       tabs.add(const Tab(text: 'การป้องกัน'));
       tabViews.add(
@@ -28,7 +95,6 @@ class LibraryDetailScreen extends StatelessWidget {
       );
     }
 
-    // Treatment Tab
     if (disease.treatment.isNotEmpty) {
       tabs.add(const Tab(text: 'การรักษา'));
       tabViews.add(
@@ -61,7 +127,7 @@ class LibraryDetailScreen extends StatelessWidget {
                 flexibleSpace: FlexibleSpaceBar(
                   titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
                   title: Text(
-                    disease.name.replaceAll('\n', ' '),
+                    disease.displayTitle,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -72,7 +138,7 @@ class LibraryDetailScreen extends StatelessWidget {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.asset(disease.imagePath, fit: BoxFit.cover),
+                      _headerImage(),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -110,6 +176,28 @@ class LibraryDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _headerImage() {
+    final url = disease.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _headerImagePlaceholder();
+        },
+      );
+    }
+    return _headerImagePlaceholder();
+  }
+
+  Widget _headerImagePlaceholder() {
+    return Container(
+      color: Colors.grey[300],
+      alignment: Alignment.center,
+      child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 64),
+    );
+  }
+
   Widget _buildGeneralTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -124,8 +212,8 @@ class LibraryDetailScreen extends StatelessWidget {
               height: 1.5,
             ),
           ),
-
-          if (disease.epidemiology != null) ...[
+          if (disease.spreadDetails != null &&
+              disease.spreadDetails!.isNotEmpty) ...[
             const SizedBox(height: 24),
             const Text(
               'การแพร่ระบาด',
@@ -137,7 +225,7 @@ class LibraryDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              disease.epidemiology!,
+              disease.spreadDetails!,
               style: const TextStyle(
                 fontSize: 16,
                 color: Colors.black87,
@@ -145,9 +233,7 @@ class LibraryDetailScreen extends StatelessWidget {
               ),
             ),
           ],
-
-          if (disease.matchWeather != null &&
-              disease.matchWeather!.isNotEmpty) ...[
+          if (disease.matchWeather.isNotEmpty) ...[
             const SizedBox(height: 24),
             _buildEnvironmentBox(),
           ],
@@ -175,20 +261,18 @@ class LibraryDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ...disease.matchWeather!
-              .map(
-                (condition) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildEnvRow(Icons.thermostat, condition),
-                ),
-              )
-              .toList(),
+          ...disease.matchWeather.map(
+            (condition) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildEnvRow(condition),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEnvRow(IconData icon, String text) {
+  Widget _buildEnvRow(String text) {
     return Row(
       children: [
         const Icon(Icons.cloud, color: Colors.black87, size: 20),
@@ -204,84 +288,51 @@ class LibraryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildSectionTab(
-    List<InfoSection> sections,
+    List<LibraryInfoSection> sections,
     IconData icon,
     Color iconColor,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
-        children:
-            sections.map((section) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Icon(icon, color: iconColor, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            section.title,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            section.description,
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
+        children: sections.map((section) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        section.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        section.description,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            }).toList(),
+              ],
+            ),
+          );
+        }).toList(),
       ),
-    );
-  }
-
-  Widget _buildPreventionItem(String title, String description) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 2),
-          child: Icon(Icons.shield, color: Colors.blueAccent, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: const TextStyle(color: Colors.black87, height: 1.5),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
