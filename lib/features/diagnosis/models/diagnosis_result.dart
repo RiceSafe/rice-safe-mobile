@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:ricesafe_app/features/diagnosis/data/models/diagnosis_history_dto.dart';
+import 'package:ricesafe_app/features/diagnosis/models/diagnosis_backend_parser.dart';
+
 class DiagnosisResult {
   final String name;
   final String confidence;
@@ -7,6 +10,9 @@ class DiagnosisResult {
   final String treatment;
   final String? diseaseSpecificImageUrl;
   final File? userUploadedImage;
+  final String? diagnosisId;
+  final DateTime? diagnosedAt;
+  final String symptoms;
 
   DiagnosisResult({
     required this.name,
@@ -15,6 +21,9 @@ class DiagnosisResult {
     required this.treatment,
     this.diseaseSpecificImageUrl,
     this.userUploadedImage,
+    this.diagnosisId,
+    this.diagnosedAt,
+    this.symptoms = '',
   });
 
   factory DiagnosisResult.fromJson(Map<String, dynamic> json) {
@@ -27,7 +36,33 @@ class DiagnosisResult {
     );
   }
 
-  DiagnosisResult copyWith({File? userUploadedImage}) {
+  /// สรุปจากแถวประวัติ (ไม่มีรายละเอียดเต็มจนกว่าจะมี GET รายการเดียว)
+  factory DiagnosisResult.fromHistory(DiagnosisHistoryDto h) {
+    final name = DiagnosisBackendParser.displayTitleForHistory(
+      prediction: h.prediction,
+      diseaseName: h.diseaseName,
+    );
+    return DiagnosisResult(
+      name: name,
+      confidence: DiagnosisBackendParser.formatConfidence(h.confidence),
+      remedy:
+          'สรุปจากประวัติการวินิจฉัย — รายละเอียดเชิงลึกแสดงหลังวินิจฉัยในแอป',
+      treatment:
+          'ดูข้อมูลเพิ่มเติมได้จากคลังความรู้ หรือวินิจฉัยใหม่ด้วยรูปปัจจุบัน',
+      diseaseSpecificImageUrl: h.imageUrl.isNotEmpty ? h.imageUrl : null,
+      userUploadedImage: null,
+      diagnosisId: h.id.isNotEmpty ? h.id : null,
+      diagnosedAt: h.createdAt,
+      symptoms: '',
+    );
+  }
+
+  DiagnosisResult copyWith({
+    File? userUploadedImage,
+    String? diagnosisId,
+    DateTime? diagnosedAt,
+    String? symptoms,
+  }) {
     return DiagnosisResult(
       name: name,
       confidence: confidence,
@@ -35,6 +70,9 @@ class DiagnosisResult {
       treatment: treatment,
       diseaseSpecificImageUrl: diseaseSpecificImageUrl,
       userUploadedImage: userUploadedImage ?? this.userUploadedImage,
+      diagnosisId: diagnosisId ?? this.diagnosisId,
+      diagnosedAt: diagnosedAt ?? this.diagnosedAt,
+      symptoms: symptoms ?? this.symptoms,
     );
   }
 }
