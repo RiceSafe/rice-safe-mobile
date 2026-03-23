@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ricesafe_app/features/auth/onboarding/register_onboarding_state.dart';
 import 'package:ricesafe_app/main.dart';
+import '../providers/auth_state.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -23,8 +26,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (username.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณากรอกข้อมูลให้ครบ')),
+      );
+      return;
+    }
+
+    RegisterOnboardingState.pendingUsername = username;
+    RegisterOnboardingState.pendingEmail = email;
+    RegisterOnboardingState.profileImagePath = null;
+
+    await ref.read(authStateProvider.notifier).registerAndSignIn(
+          username: username,
+          email: email,
+          password: password,
+        );
+
+    if (!mounted) return;
+
+    final s = ref.read(authStateProvider);
+    if (s.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.error!)),
+      );
+      return;
+    }
+
+    if (s.token != null) {
+      context.go('/register/profile-photo');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authStateProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -45,7 +87,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           children: [
             const SizedBox(height: 24),
-            // Logo Section
             Center(
               child: Column(
                 children: [
@@ -73,7 +114,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 40),
 
-            // Fields
+            if (authState.isLoading)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16.0),
+                child: LinearProgressIndicator(color: riceSafeGreen),
+              ),
+
             _buildLabel('ชื่อผู้ใช้'),
             _buildTextField(
               controller: _usernameController,
@@ -127,14 +173,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             const SizedBox(height: 48),
 
-            // Submit Button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  GoRouter.of(context).go('/home');
-                },
+                onPressed: authState.isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: riceSafeGreen,
                   shape: RoundedRectangleBorder(
@@ -142,20 +185,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'สร้างบัญชี',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: authState.isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'สร้างบัญชี',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
 
             const SizedBox(height: 24),
 
-            // Login Link
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

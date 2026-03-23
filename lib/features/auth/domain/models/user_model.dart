@@ -14,12 +14,13 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    // Backend sends UUID as string; ignore extra fields (created_at, updated_at, etc.)
     return UserModel(
-      id: json['id'] ?? '',
-      username: json['username'] ?? '',
-      email: json['email'],
-      role: json['role'] ?? 'FARMER',
-      avatarUrl: json['avatar_url'],
+      id: json['id']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      email: json['email'] as String?,
+      role: json['role']?.toString() ?? 'FARMER',
+      avatarUrl: json['avatar_url'] as String?,
     );
   }
 
