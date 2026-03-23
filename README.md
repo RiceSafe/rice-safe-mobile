@@ -30,7 +30,7 @@ RiceSafe follows a **Feature-first Clean Architecture** pattern to ensure scalab
 ### Layers
 Each feature (e.g., `diagnosis`, `auth`) is self-contained with its own layers:
 1.  **Data Layer (`data`):**
-    *   **Data Sources:** Handle raw API calls (e.g., `DioClient`).
+    *   **Data Sources:** Handle raw API calls via shared `dioProvider` (Dio + interceptors).
     *   **Repositories:** Implement the interface to fetch data and handle errors.
 2.  **Domain/Model Layer (`models`):**
     *   **Entities:** Pure Dart classes representing the data (e.g., `DiagnosisResult`).
