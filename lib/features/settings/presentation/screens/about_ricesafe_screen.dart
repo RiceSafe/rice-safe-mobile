@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:ricesafe_app/main.dart';
 
-/// เกี่ยวกับแอป RiceSafe — เวอร์ชัน คำอธิบาย ลิงก์ข้อมูลทางกฎหมายแบบย่อ
 class AboutRiceSafeScreen extends StatefulWidget {
   const AboutRiceSafeScreen({super.key});
 
@@ -25,26 +24,34 @@ class _AboutRiceSafeScreenState extends State<AboutRiceSafeScreen> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              body,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.45,
-                color: Colors.grey.shade800,
+        padding: EdgeInsets.fromLTRB(
+          24,
+          8,
+          24,
+          32 + MediaQuery.paddingOf(ctx).bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                body,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.45,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -94,18 +101,6 @@ class _AboutRiceSafeScreenState extends State<AboutRiceSafeScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Center(
-            child: Text(
-              'เพื่อนชาวนาในการดูแลข้าวและโรคระบาด',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.35,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ),
           const SizedBox(height: 8),
           Center(
             child: Container(
@@ -115,7 +110,7 @@ class _AboutRiceSafeScreenState extends State<AboutRiceSafeScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'เวอร์ชัน $versionLabel',
+                'v $versionLabel',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -134,8 +129,7 @@ class _AboutRiceSafeScreenState extends State<AboutRiceSafeScreen> {
           const SizedBox(height: 10),
           Text(
             'RiceSafe ช่วยให้ชาวนาและผู้สนใจตรวจสอบอาการโรคในข้าวจากภาพ ค้นหาความรู้จากคลัง '
-            'ติดตามการแจ้งเตือนและแผนที่การระบาด และใช้ชุมชนแลกเปลี่ยนประสบการณ์ — '
-            'พัฒนาในกรอบโปรเจกต์ทางการศึกษา',
+            'ติดตามการแจ้งเตือนและแผนที่การระบาด และใช้ชุมชนแลกเปลี่ยนประสบการณ์',
             style: TextStyle(
               fontSize: 15,
               height: 1.5,
@@ -154,38 +148,24 @@ class _AboutRiceSafeScreenState extends State<AboutRiceSafeScreen> {
                 ListTile(
                   leading: CircleAvatar(
                     backgroundColor: riceSafeGreen.withValues(alpha: 0.12),
-                    child: Icon(Icons.privacy_tip_outlined, color: riceSafeGreen),
-                  ),
-                  title: const Text('นโยบายความเป็นส่วนตัว'),
-                  subtitle: Text(
-                    'การเก็บและใช้ข้อมูลส่วนบุคคล',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showLegalStub(
-                    context,
-                    'นโยบายความเป็นส่วนตัว',
-                    'เอกสารฉบับเต็มจะเผยแพร่เมื่อโครงการกำหนดรายละเอียดขั้นสุดท้าย '
-                    'หากมีข้อสงสัยด้านข้อมูลส่วนบุคคล สามารถติดต่อทีมผ่านเมนู "ติดต่อเรา" ได้',
-                  ),
-                ),
-                Divider(height: 1, color: Colors.grey.shade200),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: riceSafeGreen.withValues(alpha: 0.12),
                     child: Icon(Icons.gavel_outlined, color: riceSafeGreen),
                   ),
                   title: const Text('ข้อกำหนดการใช้งาน'),
                   subtitle: Text(
-                    'ขอบเขตความรับผิดและการใช้บริการ',
+                    'ข้อจำกัดความรับผิดและการใช้งานในกรอบโปรเจกต์การศึกษา',
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _showLegalStub(
                     context,
                     'ข้อกำหนดการใช้งาน',
-                    'ผลการวินิจฉัยและข้อมูลในแอปใช้ประกอบการตัดสินใจเท่านั้น ไม่ทดแทนคำแนะนำจากผู้เชี่ยวชาญในสนาม '
-                    'ข้อกำหนดฉบับสมบูรณ์จะแจ้งให้ทราบเมื่อเผยแพร่อย่างเป็นทางการ',
+                    'RiceSafe จัดทำขึ้นในกรอบโปรเจกต์ทางการศึกษา ผลการวินิจฉัยจากภาพและคำอธิบายอาการ '
+                    'รวมถึงเนื้อหาในคลังความรู้ แผนที่ และชุมชน มีไว้เพื่อช่วยประกอบการตัดสินใจเท่านั้น '
+                    'ไม่ใช่คำวินิจฉัยหรือคำแนะนำทางการเกษตรหรือการรักษาโรคพืชอย่างเป็นทางการ '
+                    'ผู้ใช้ควรปรึกษาเจ้าหน้าที่หรือผู้เชี่ยวชาญในพื้นที่เมื่อต้องการความแม่นยำในการจัดการแปลง\n\n'
+                    'ทีมพัฒนาไม่รับประกันความถูกต้องสมบูรณ์ของผลลัพธ์ ความต่อเนื่องของบริการ '
+                    'หรือความเหมาะสมกับกรณีใดกรณีหนึ่ง ผู้ใช้ตกลงใช้แอปด้วยความเสี่ยงของตนเอง '
+                    'และจะไม่นำระบบไปใช้ในทางที่ผิดกฎหมายหรือละเมิดสิทธิผู้อื่น',
                   ),
                 ),
               ],
@@ -194,7 +174,7 @@ class _AboutRiceSafeScreenState extends State<AboutRiceSafeScreen> {
           const SizedBox(height: 28),
           Center(
             child: Text(
-              '© ${DateTime.now().year} โครงการ RiceSafe',
+              '© ${DateTime.now().year} RiceSafe',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
           ),
