@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../models/diagnosis_result.dart';
 import '../providers/diagnosis_provider.dart';
 import '../../../../main.dart';
@@ -143,6 +144,25 @@ class DiagnosisResultScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            if (result.confidence.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                'ความมั่นใจ: ${result.confidence}',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: riceSafeTextPrimary.withValues(alpha: 0.85),
+                ),
+              ),
+            ],
+            if (result.diagnosedAt != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('dd/MM/yyyy HH:mm')
+                    .format(result.diagnosedAt!.toLocal()),
+                style: textTheme.bodySmall?.copyWith(
+                  color: riceSafeTextPrimary.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Display Image Logic
@@ -195,6 +215,16 @@ class DiagnosisResultScreen extends ConsumerWidget {
               _buildPlaceholderImage(),
 
             const SizedBox(height: 24),
+
+            if (result.symptoms.trim().isNotEmpty) ...[
+              _buildSectionCard(
+                context,
+                icon: Icons.healing_outlined,
+                title: 'อาการที่พบ',
+                content: _buildMultiLineTextContent(context, result.symptoms),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),

@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ricesafe_app/core/network/dio_client.dart';
+import 'package:ricesafe_app/core/network/dio_provider.dart';
 import 'package:ricesafe_app/features/diagnosis/data/data_sources/diagnosis_remote_source.dart';
 import 'package:ricesafe_app/features/diagnosis/data/diagnosis_repository.dart';
+import 'package:ricesafe_app/features/diagnosis/data/models/diagnosis_history_dto.dart';
 import 'package:ricesafe_app/features/diagnosis/models/diagnosis_result.dart';
+import 'package:ricesafe_app/features/settings/presentation/providers/farm_location_provider.dart';
 
 abstract class DiagnosisState {}
 
@@ -21,10 +23,8 @@ class DiagnosisError extends DiagnosisState {
   DiagnosisError(this.message);
 }
 
-final dioClientProvider = Provider((ref) => DioClient());
-
 final diagnosisRemoteSourceProvider = Provider((ref) {
-  return DiagnosisRemoteDataSource(ref.read(dioClientProvider));
+  return DiagnosisRemoteDataSource(ref.watch(dioProvider));
 });
 
 final diagnosisRepositoryProvider = Provider((ref) {
@@ -33,13 +33,13 @@ final diagnosisRepositoryProvider = Provider((ref) {
 
 final diagnosisProvider =
     StateNotifierProvider.autoDispose<DiagnosisNotifier, DiagnosisState>((ref) {
-      return DiagnosisNotifier(ref.read(diagnosisRepositoryProvider));
-    });
+  return DiagnosisNotifier(ref);
+});
 
 class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
-  final DiagnosisRepository repository;
+  DiagnosisNotifier(this._ref) : super(DiagnosisInitial());
 
-  DiagnosisNotifier(this.repository) : super(DiagnosisInitial());
+  final Ref _ref;
 
   Future<void> diagnoseDisease({
     required File image,
@@ -47,11 +47,27 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
   }) async {
     state = DiagnosisLoading();
 
-    final resultEither = await repository.diagnose(image, description);
+    double? lat;
+    double? lon;
+    try {
+      final loc = await _ref.read(farmLocationProvider.future);
+      lat = loc?.latitude;
+      lon = loc?.longitude;
+    } catch (_) {}
+
+    final resultEither = await _ref.read(diagnosisRepositoryProvider).diagnose(
+          image,
+          description,
+          latitude: lat,
+          longitude: lon,
+        );
 
     resultEither.fold(
       (failure) => state = DiagnosisError(failure.message),
-      (success) => state = DiagnosisSuccess(success),
+      (success) {
+        _ref.invalidate(diagnosisHistoryProvider);
+        state = DiagnosisSuccess(success);
+      },
     );
   }
 
@@ -59,3 +75,13 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
     state = DiagnosisInitial();
   }
 }
+
+final diagnosisHistoryProvider =
+    FutureProvider.autoDispose<List<DiagnosisHistoryDto>>((ref) async {
+  final repo = ref.watch(diagnosisRepositoryProvider);
+  final result = await repo.getHistory();
+  return result.fold(
+    (l) => throw Exception(l.message),
+    (r) => r,
+  );
+});

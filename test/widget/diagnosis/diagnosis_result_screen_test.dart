@@ -40,5 +40,27 @@ void main() {
 
     // Verify New Diagnosis Button
     expect(find.text('วินิจฉัยรายการใหม่'), findsOneWidget);
+
+    expect(find.textContaining('ความมั่นใจ'), findsOneWidget);
+  });
+
+  testWidgets('DiagnosisResultScreen shows symptoms card when present',
+      (WidgetTester tester) async {
+    final result = DiagnosisResult(
+      name: 'โรคทดสอบ',
+      confidence: '88.0%',
+      remedy: 'รักษา',
+      treatment: 'ป้องกัน',
+      symptoms: 'อาการ A\nรายละเอียด A',
+    );
+
+    await pumpRouterApp(
+      tester,
+      home: DiagnosisResultScreen(result: result),
+      router: mockRouter,
+    );
+
+    expect(find.text('อาการที่พบ'), findsOneWidget);
+    expect(find.textContaining('อาการ A'), findsOneWidget);
   });
 }

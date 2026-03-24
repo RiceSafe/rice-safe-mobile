@@ -1,11 +1,19 @@
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dotted_border/dotted_border.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:ricesafe_app/core/error/user_error_message.dart';
+import 'package:ricesafe_app/core/widgets/app_bar_profile_button.dart';
+import 'package:ricesafe_app/features/diagnosis/data/models/diagnosis_history_dto.dart';
+import 'package:ricesafe_app/features/diagnosis/models/diagnosis_backend_parser.dart';
+import 'package:ricesafe_app/features/diagnosis/models/diagnosis_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../providers/diagnosis_provider.dart';
+import 'diagnosis_camera_capture_screen.dart';
 import '../../../../main.dart';
 
 class DiagnosisInputScreen extends ConsumerStatefulWidget {
@@ -19,12 +27,10 @@ class DiagnosisInputScreen extends ConsumerStatefulWidget {
 class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   File? _selectedImage;
-  final ImagePicker _picker = ImagePicker();
 
   // Speech to Text
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  bool _speechEnabled = false;
 
   @override
   void initState() {
@@ -33,10 +39,14 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
     _initSpeech();
   }
 
+  void _speechLog(String label, Object? msg) {
+    if (kDebugMode) debugPrint('[speech] $label: $msg');
+  }
+
   void _initSpeech() async {
-    _speechEnabled = await _speech.initialize(
-      onError: (val) => print('onError: $val'),
-      onStatus: (val) => print('onStatus: $val'),
+    await _speech.initialize(
+      onError: (e) => _speechLog('error', e),
+      onStatus: (s) => _speechLog('status', s),
     );
     setState(() {});
   }
@@ -55,30 +65,23 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
     ref.read(diagnosisProvider.notifier).reset();
   }
 
-  Future<void> _pickImageFromGallery() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-      );
-      if (pickedFile != null) {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e')),
-        );
-      }
+  Future<void> _openCameraCapture() async {
+    final path = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (context) => const DiagnosisCameraCaptureScreen(),
+        fullscreenDialog: true,
+      ),
+    );
+    if (path != null && path.isNotEmpty && mounted) {
+      setState(() => _selectedImage = File(path));
     }
   }
 
   void _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
+        onStatus: (s) => _speechLog('status', s),
+        onError: (e) => _speechLog('error', e),
       );
       if (available) {
         setState(() => _isListening = true);
@@ -155,20 +158,12 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
         centerTitle: false,
         titleSpacing: 0,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: InkWell(
-              onTap: () {
-                GoRouter.of(context).push('/settings');
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundColor: riceSafeGreen,
-                child: Icon(Icons.person, color: Colors.white),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'ประวัติการวินิจฉัย',
+            onPressed: () => context.push('/diagnosis/history'),
           ),
+          const AppBarProfileButton(),
         ],
       ),
       body: SingleChildScrollView(
@@ -209,7 +204,7 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'ถ่ายรูปหรือนำรูปภาพมาจากแกลลอรี่',
+                                'แตะด้านล่างเพื่อเปิดกล้อง — เลือกจากแกลเลอรี่ได้ที่มุมล่างในหน้ากล้อง',
                                 textAlign: TextAlign.center,
                                 style: textTheme.bodyMedium?.copyWith(
                                   color: Colors.black54,
@@ -217,10 +212,14 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed:
-                                    isLoading ? null : _pickImageFromGallery,
-                                child: const Text('เลือกรูปภาพ'),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      isLoading ? null : _openCameraCapture,
+                                  icon: const Icon(Icons.photo_camera_outlined),
+                                  label: const Text('เลือกรูปภาพ'),
+                                ),
                               ),
                             ],
                           )
@@ -268,18 +267,25 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
                 ),
                 tooltip: 'พูดเพื่อพิมพ์',
               ),
-              child: TextField(
-                controller: _descriptionController,
-                maxLines: 4,
-                minLines: 3,
-                enabled: !isLoading,
-                decoration: const InputDecoration(
-                  hintText:
-                      'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
-                ),
-                style: textTheme.bodyLarge?.copyWith(
-                  color: riceSafeTextPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildDescriptionGuidanceBullets(textTheme),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 4,
+                    minLines: 3,
+                    enabled: !isLoading,
+                    decoration: const InputDecoration(
+                      hintText:
+                          'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
+                    ),
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: riceSafeTextPrimary,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 30),
@@ -309,6 +315,31 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
     );
   }
 
+  Widget _buildDescriptionGuidanceBullets(TextTheme textTheme) {
+    final TextStyle? lineStyle = textTheme.bodySmall?.copyWith(
+      color: Colors.black54,
+      height: 1.35,
+      fontSize: 13,
+    );
+    const List<String> lines = <String>[
+      'ระยะข้าว (ถ้ารู้) เช่น กล้า / แตกกอ',
+      'ตำแหน่งบนใบ เช่น ปลายใบ / ขอบใบ / กลางใบ',
+      'ลักษณะแผล เช่น เป็นจุด / เป็นเส้นยาว',
+      'สี เช่น เหลือง / น้ำตาล',
+      'การกระจายแผล เช่น เป็นจุดๆ / ทั่วแผ่นใบ',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < lines.length; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i < lines.length - 1 ? 4 : 0),
+            child: Text('• ${lines[i]}', style: lineStyle),
+          ),
+      ],
+    );
+  }
+
   Widget _buildSectionContainer({
     required String title,
     required Widget child,
@@ -331,91 +362,151 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
     );
   }
 
-  Widget _buildHistorySection(TextTheme textTheme) {
-    // Mock Data for History
-    final historyItems = [
-      {
-        'name': 'โรคไหม้ (Rice Blast Disease)',
-        'date': '12 ม.ค. 2024',
-        'confidence': '95%',
-        'image': 'assets/mock/rice_blast.jpg',
-      },
-      {
-        'name': 'โรคใบจุดสีน้ำตาล (Brown Spot Disease)',
-        'date': '10 ม.ค. 2024',
-        'confidence': '88%',
-        'image': 'assets/mock/brown_spot.jpg',
-      },
-      {
-        'name': 'โรคขอบใบแห้ง (Bacterial Leaf Blight Disease)',
-        'date': '05 ม.ค. 2024',
-        'confidence': '92%',
-        'image': 'assets/mock/leaf_blight.jpg',
-      },
-    ];
+  String _historyRowTitle(DiagnosisHistoryDto h) {
+    return DiagnosisBackendParser.displayTitleForHistory(
+      prediction: h.prediction,
+      diseaseName: h.diseaseName,
+    );
+  }
 
-    return _buildSectionContainer(
-      title: 'การวิเคราะห์โรคล่าสุด',
-      titleStyle: textTheme.titleMedium!,
-      child: Column(
-        children:
-            historyItems.map((item) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+  String _historyRowDateLabel(DiagnosisHistoryDto h) {
+    final dt = h.createdAt;
+    if (dt == null) return '-';
+    return DateFormat('dd/MM/yyyy HH:mm').format(dt.toLocal());
+  }
+
+  Widget _buildHistorySection(TextTheme textTheme) {
+    final async = ref.watch(diagnosisHistoryProvider);
+
+    return async.when(
+      loading: () => _buildSectionContainer(
+        title: 'การวิเคราะห์โรคล่าสุด',
+        titleStyle: textTheme.titleMedium!,
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+      error:
+          (e, _) => _buildSectionContainer(
+            title: 'การวิเคราะห์โรคล่าสุด',
+            titleStyle: textTheme.titleMedium!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  userFacingMessage(
+                    e,
+                    contextFallback: 'โหลดประวัติไม่สำเร็จ',
+                  ),
+                  style: textTheme.bodyMedium,
                 ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      item['image']!,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 60,
-                          height: 60,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image, color: Colors.grey),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => ref.invalidate(diagnosisHistoryProvider),
+                  style: FilledButton.styleFrom(backgroundColor: riceSafeGreen),
+                  child: const Text('ลองอีกครั้ง'),
+                ),
+              ],
+            ),
+          ),
+      data: (items) {
+        final latest = items.take(3).toList();
+        if (latest.isEmpty) {
+          return _buildSectionContainer(
+            title: 'การวิเคราะห์โรคล่าสุด',
+            titleStyle: textTheme.titleMedium!,
+            child: Text(
+              'ยังไม่มีประวัติการวินิจฉัย',
+              style: textTheme.bodyMedium?.copyWith(color: Colors.black54),
+            ),
+          );
+        }
+        return _buildSectionContainer(
+          title: 'การวิเคราะห์โรคล่าสุด',
+          titleStyle: textTheme.titleMedium!,
+          child: Column(
+            children:
+                latest.map((h) {
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child:
+                            h.imageUrl.isNotEmpty
+                                ? Image.network(
+                                  h.imageUrl,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                )
+                                : Container(
+                                  width: 60,
+                                  height: 60,
+                                  color: Colors.grey[200],
+                                  child: const Icon(
+                                    Icons.biotech_outlined,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                      ),
+                      title: Text(
+                        _historyRowTitle(h),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ความแม่นยำ: ${h.confidence.toStringAsFixed(1)}%',
+                            ),
+                            Text(
+                              'วันที่: ${_historyRowDateLabel(h)}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        context.push(
+                          '/diagnosis/result',
+                          extra: DiagnosisResult.fromHistory(h),
                         );
                       },
                     ),
-                  ),
-                  title: Text(
-                    item['name']!,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('ความแม่นยำ: ${item["confidence"]}'),
-                        Text(
-                          'วันที่: ${item["date"]}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // Navigate to detail
-                  },
-                ),
-              );
-            }).toList(),
-      ),
+                  );
+                }).toList(),
+          ),
+        );
+      },
     );
   }
 }

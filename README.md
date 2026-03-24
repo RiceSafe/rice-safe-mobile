@@ -1,44 +1,54 @@
 # RiceSafe Mobile Application
 
-RiceSafe is a Flutter application designed to help users diagnose rice diseases by uploading an image of the rice disease and providing a description of its symptoms. The app communicates with an AI server for analysis and then presents the diagnosis and treatment recommendations.
+RiceSafe is a Flutter app for farmers: upload or photograph affected rice, describe symptoms, and read back a disease-oriented result and guidance from the RiceSafe backend. Signed-in use covers diagnosis, community, maps, and personal settings.
 
 ## Features
 
-- **Image Upload:** Users can select an image of a rice plant from their gallery.
-- **Symptom Description:** Users can provide a textual description of the observed symptoms.
-- **Speech-to-Text:** Users can use Thai voice input ("th_TH") to describe symptoms by tapping the microphone icon.
-- **AI-Powered Diagnosis:** Connected with the AI server to predict the rice disease and provide confidence scores.
-- **Diagnosis Results:** Displays the predicted disease result, remedy, and preventative treatment advice.
-- **Outbreak Map:** Interactive map showing disease outbreak locations and indicating the user's distance from them.
-- **Community Feed:** A social platform for farmers to share posts, view updates, and interact with the community.
-- **User-Friendly Interface:** Clean and intuitive UI with bottom navigation for easy access to all features.
+- **Diagnosis:** Choose a photo from the gallery or take one in the app; add symptom text; optional Thai voice input from the microphone. Results show disease-oriented information (including remedy and prevention when returned). Optional farm location can accompany a diagnosis when the user has set it.
+- **Diagnosis history:** List of past checks.
+- **Disease library:** Browse disease information and open detail views.
+- **Outbreak map:** Map of outbreak-related points with the user’s location for context and distance.
+- **Home:** Overview and shortcuts (including notifications and profile access from the app bar).
+- **Notifications:** In-app notification list and unread count.
+- **Community:** Feed, create posts, and open a post to read or add comments.
+- **Account:** Email/password sign-in and registration; sign-in with Google or LINE; forgot and reset password; registration onboarding for profile photo and farm location.
+- **Settings:** Edit profile, set farm location on a map, contact support, app/about information.
+- **Navigation:** After sign-in, bottom navigation: หน้าหลัก, คลังความรู้, วินิจฉัย (center action), ชุมชน, แผนที่ระบาด.
 
 ## Tech Stack
 
-- **Framework:** Flutter (Dart)
-- **Architecture:** Clean Architecture (Feature-first)
-- **State Management:** Riverpod
-- **Routing:** GoRouter
-- **Networking:** Dio
-- **Maps:** flutter_map with latlong2
-- **Speech Recognition:** speech_to_text
+- **Framework:** Flutter (Dart SDK `^3.7.2`, package name `ricesafe_app`)
+- **Layout:** Feature-oriented modules under `lib/features`; shared code under `lib/core`
+- **State:** `flutter_riverpod`
+- **Routing:** `go_router`
+- **HTTP:** `dio` (Bearer from `authTokenProvider`); `http` / `http_parser` also listed in `pubspec.yaml`
+- **Env:** `flutter_dotenv` (`.env` asset)
+- **Local storage:** `hive_flutter` (auth token box); `shared_preferences` (farm location and related)
+- **Maps:** `flutter_map`, `latlong2`, `geolocator`
+- **Speech:** `speech_to_text`
+- **Media:** `image_picker`, `camera`
+- **OAuth:** `google_sign_in`, `flutter_line_sdk`
+- **Other:** `dartz`, `equatable`, `intl`, `dotted_border`, `package_info_plus`
 
 ## Architecture
 
 RiceSafe follows a **Feature-first Clean Architecture** pattern to ensure scalability, maintainability, and testability.
 
 ### Layers
+
 Each feature (e.g., `diagnosis`, `auth`) is self-contained with its own layers:
-1.  **Data Layer (`data`):**
-    *   **Data Sources:** Handle raw API calls (e.g., `DioClient`).
-    *   **Repositories:** Implement the interface to fetch data and handle errors.
-2.  **Domain/Model Layer (`models`):**
-    *   **Entities:** Pure Dart classes representing the data (e.g., `DiagnosisResult`).
-3.  **Presentation Layer (`presentation`):**
-    *   **Screens:** The UI widgets (e.g., `DiagnosisInputScreen`).
-    *   **Providers:** State management logic (Riverpod) connecting UI to Data.
+
+1. **Data Layer (`data`):**
+  - **Data Sources:** Handle raw API calls via shared `dioProvider` (Dio + interceptors).
+  - **Repositories:** Implement the interface to fetch data and handle errors.
+2. **Domain/Model Layer (`models`):**
+  - **Entities:** Pure Dart classes representing the data (e.g., `DiagnosisResult`).
+3. **Presentation Layer (`presentation`):**
+  - **Screens:** The UI widgets (e.g., `DiagnosisInputScreen`).
+  - **Providers:** State management logic (Riverpod) connecting UI to Data.
 
 ### Core
+
 Shared resources like Networking, Routing, and Configuration are located in `lib/core`.
 
 ## Project Structure
@@ -47,81 +57,90 @@ Shared resources like Networking, Routing, and Configuration are located in `lib
 rice-safe-mobile/
 ├── lib/
 │   ├── core/
-│   │   ├── config/             # App-wide configurations (e.g. EnvConfig)
-│   │   ├── error/              # Failure and Exception classes
-│   │   ├── network/            # Dio client and Interceptors
-│   │   └── router/             # GoRouter configuration (`app_router.dart`)
-│   │
-│   ├── features/               # Feature-based modules
-│   │   ├── diagnosis/          # [Example Feature Structure]
-│   │   │   ├── data/
-│   │   │   │   ├── data_sources/   # Remote/Local data sources
-│   │   │   │   └── diagnosis_repository.dart
-│   │   │   ├── models/             # Data models (e.g. DiagnosisResult)
-│   │   │   └── presentation/
-│   │   │       ├── providers/      # Riverpod Notifiers
-│   │   │       └── screens/        # UI Widgets
-│   │   │
-│   │   ├── auth/               # Login & Register
-│   │   ├── community/          # Social Feed
-│   │   ├── home/               # Dashboard
-│   │   ├── library/            # Disease Encyclopedia
-│   │   ├── outbreak/           # Map & Alert System
-│   │   └── settings/           # Profile & Settings
-│   │
-│   └── main.dart               # App entry point
-├── .env.example                # Example environment variables
-├── pubspec.yaml                # Project dependencies
-└── README.md                   # This file
+│   │   ├── config/             # EnvConfig (BASE_URL, LINE_CHANNEL_ID)
+│   │   ├── error/              # Failures, exceptions, user-facing messages
+│   │   ├── map/                # Shared map tile layer + attribution
+│   │   ├── network/            # dio_provider, dio_error_detail
+│   │   ├── router/             # GoRouter, auth refresh listenable
+│   │   └── widgets/            # e.g. app bar profile, notification badge
+│   ├── features/
+│   │   ├── auth/               # Login, register, onboarding, OAuth, token storage
+│   │   ├── community/          # Feed, create post, post detail / comments
+│   │   ├── diagnosis/          # Input, camera, result, history, repository, parser
+│   │   ├── home/               # Home screen, dashboard providers
+│   │   ├── library/            # Disease library list and detail
+│   │   ├── main/               # MainWrapper (bottom navigation shell)
+│   │   ├── notifications/      # API-backed notifications
+│   │   ├── outbreak/           # Outbreak map screen and data
+│   │   └── settings/         # Settings, profile, farm location, support, about
+│   └── main.dart               # Hive init, dotenv, optional LineSDK.setup, ProviderScope
+├── test/
+│   ├── integration/            # e.g. smoke_test (RiceSafeApp + TestHive)
+│   └── helpers/
+├── assets/                     # Bundled assets (see pubspec `assets:`)
+├── .env.example
+├── pubspec.yaml
+└── README.md
 ```
 
 ## Prerequisites
 
-- **Flutter SDK** (latest stable version recommended)
-- An IDE like VS Code or Android Studio/IntelliJ IDEA for Flutter development.
+- Flutter SDK (compatible with Dart `^3.7.2`)
+- IDE: VS Code or Android Studio / IntelliJ with Flutter plugins
 
-## Installation Guide
+## Installation
 
-- **Clone the repository:**
+Clone the repository:
 
-  ```bash
-  git clone https://github.com/RiceSafe/rice-safe-mobile.git
-  ```
+```bash
+git clone https://github.com/RiceSafe/rice-safe-mobile.git
+```
 
-  Change directory to project directory
+Change directory to project directory:
 
-  ```bash
-  cd rice-safe-mobile
-  ```
+```bash
+cd rice-safe-mobile
+```
 
-- **Update Dependencies:**
+Update Dependencies:
 
-  ```bash
-  flutter pub get
-  ```
+```bash
+flutter pub get
+```
 
-- **Create Environment File (`.env`):**
-  Create a file named `.env` in the root directory.
+Create `.env`:
 
-  ```bash
-  cp .env.example .env
-  ```
+```bash
+cp .env.example .env
+```
 
-  ```dotenv
-  # Base URL for AI Server
-  # If running on a physical device, use your machine's IP address (e.g., http://192.168.1.5:8000)
-  BASE_URL=http://<YOUR_IP>:8000
-  ```
+Set at least:
 
-- **Run the Flutter App:**
+```dotenv
+# Backend API base URL (must include /api suffix used by route constants in the app)
+# iOS Simulator / same host: http://localhost:8080/api
+# Android emulator: http://10.0.2.2:8080/api
+# Physical device: http://<LAN_IP>:8080/api
+BASE_URL=http://localhost:8080/api
 
-  ```bash
-  flutter run
-  ```
+# LINE Login — required in .env for LineSDK.setup in main.dart when using LINE sign-in
+LINE_CHANNEL_ID=your_line_channel_id_here
+
+# Optional: true or 1 to use diagnosis fixtures and mock history (no POST/GET diagnosis over the network)
+# USE_MOCK_DIAGNOSIS=false
+```
+
+Run:
+
+```bash
+flutter run
+```
 
 ## Permissions
 
-To use all features, the app requires the following permissions:
-- **Camera/Photo Library:** For uploading disease images.
-- **Microphone:** For speech-to-text symptom description.
-- **Location:** For calculating distance to outbreak areas.
+Declared for platform builds as needed for the above plugins, including:
+
+- **Camera / photo library:** disease images
+- **Microphone:** speech-to-text
+- **Location:** outbreak map and diagnosis location when granted
+

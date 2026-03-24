@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+import 'package:ricesafe_app/core/error/user_error_message.dart';
 import 'package:ricesafe_app/main.dart';
 import '../providers/auth_state.dart';
 
@@ -32,14 +33,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (idToken != null) {
         await ref.read(authStateProvider.notifier).loginWithOAuth('google', idToken);
-        if (mounted && ref.read(authStateProvider).token != null) {
-          context.go('/home');
-        }
+        if (!mounted || ref.read(authStateProvider).token == null) return;
+        context.go('/onboarding/farm-location');
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google Login Error: $error')),
+          SnackBar(
+            content: Text(
+              userFacingMessage(
+                error,
+                contextFallback: 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ',
+              ),
+            ),
+          ),
         );
       }
     }
@@ -55,16 +62,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (idToken != null) {
         await ref.read(authStateProvider.notifier).loginWithOAuth('line', idToken);
-        if (mounted && ref.read(authStateProvider).token != null) {
-          context.go('/home');
-        }
+        if (!mounted || ref.read(authStateProvider).token == null) return;
+        context.go('/onboarding/farm-location');
       } else {
         throw Exception("Could not retrieve ID Token from LINE");
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('LINE Login Error: $e')),
+          SnackBar(
+            content: Text(
+              userFacingMessage(
+                e,
+                contextFallback: 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ',
+              ),
+            ),
+          ),
         );
       }
     }
@@ -176,7 +189,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () => context.push('/forgot-password'),
                     child: const Text(
                       'ลืมรหัสผ่าน?',
                       style: TextStyle(color: Colors.grey),
@@ -191,10 +204,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: authState.isLoading ? null : () {
-                      // Normal login logic would go here
-                      context.go('/home');
-                    },
+                    onPressed: authState.isLoading
+                        ? null
+                        : () async {
+                            await ref
+                                .read(authStateProvider.notifier)
+                                .loginWithEmailPassword(
+                                  _usernameController.text.trim(),
+                                  _passwordController.text,
+                                );
+                            if (!context.mounted) return;
+                            final s = ref.read(authStateProvider);
+                            if (s.token != null && s.error == null) {
+                              context.go('/home');
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: riceSafeGreen,
                       shape: RoundedRectangleBorder(

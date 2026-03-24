@@ -88,7 +88,7 @@ class _MainWrapperState extends State<MainWrapper> {
           const NavigationDestination(
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map),
-            label: 'แจ้งเตือน',
+            label: 'แผนที่ระบาด',
           ),
         ],
       ),

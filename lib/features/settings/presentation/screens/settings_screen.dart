@@ -1,12 +1,93 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ricesafe_app/features/auth/onboarding/register_onboarding_state.dart';
+import 'package:ricesafe_app/features/auth/presentation/providers/auth_state.dart';
 import 'package:ricesafe_app/main.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authUser = ref.watch(authStateProvider).user;
+    final displayName =
+        authUser?.username ?? RegisterOnboardingState.displayUsername;
+    final avatarPath = RegisterOnboardingState.avatarFilePath;
+    File? avatarFile;
+    if (avatarPath != null &&
+        avatarPath.isNotEmpty &&
+        File(avatarPath).existsSync()) {
+      avatarFile = File(avatarPath);
+    }
+
+    final avatarUrl = authUser?.avatarUrl;
+
+    Widget profileAvatar() {
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        return CircleAvatar(
+          radius: 60,
+          backgroundColor: riceSafeGreen,
+          child: ClipOval(
+            child: Image.network(
+              avatarUrl,
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                final local = avatarFile;
+                if (local != null) {
+                  return Image.file(
+                    local,
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  );
+                }
+                return const Icon(Icons.person, size: 60, color: Colors.white);
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Padding(
+                  padding: EdgeInsets.all(28.0),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+      final localFile = avatarFile;
+      if (localFile != null) {
+        return CircleAvatar(
+          radius: 60,
+          backgroundColor: riceSafeGreen,
+          backgroundImage: FileImage(localFile),
+        );
+      }
+      return const CircleAvatar(
+        radius: 60,
+        backgroundColor: riceSafeGreen,
+        child: Icon(Icons.person, size: 60, color: Colors.white),
+      );
+    }
+
+    String roleLabel() {
+      switch (authUser?.role) {
+        case 'EXPERT':
+          return 'ผู้เชี่ยวชาญ';
+        case 'ADMIN':
+          return 'ผู้ดูแลระบบ';
+        default:
+          return 'ชาวนา (Rice Farmer)';
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('โปรไฟล์และการตั้งค่า'),
@@ -16,39 +97,19 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 32),
-            // Profile Header
-            const Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: riceSafeGreen,
-                    child: Icon(Icons.person, size: 60, color: Colors.white),
-                  ),
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.camera_alt,
-                      color: riceSafeGreen,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Profile Header (เปลี่ยนรูปที่ ข้อมูลส่วนตัว)
+            Center(child: profileAvatar()),
             const SizedBox(height: 16),
-            const Text(
-              'ใบข้าว บ้านนา',
-              style: TextStyle(
+            Text(
+              displayName,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
             ),
             Text(
-              'ชาวนา (Rice Farmer)',
+              roleLabel(),
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 32),
@@ -58,42 +119,47 @@ class SettingsScreen extends StatelessWidget {
             _buildSettingItem(
               icon: Icons.person_outline,
               title: 'ข้อมูลส่วนตัว',
-              onTap: () {},
+              onTap: () {
+                GoRouter.of(context).push('/settings/edit-profile');
+              },
             ),
             _buildSettingItem(
-              icon: Icons.notifications_outlined,
-              title: 'การแจ้งเตือน',
-              onTap: () {},
+              icon: Icons.location_on_outlined,
+              title: 'ตั้งค่าตำแหน่งและการแจ้งเตือนการระบาด',
+              onTap: () {
+                GoRouter.of(context).push('/settings/farm-location');
+              },
             ),
 
             const SizedBox(height: 24),
             _buildSectionHeader('ช่วยเหลือ'),
             _buildSettingItem(
-              icon: Icons.book_outlined,
-              title: 'คู่มือการใช้งาน',
-              onTap: () {},
-            ),
-            _buildSettingItem(
               icon: Icons.headset_mic_outlined,
               title: 'ติดต่อเรา',
-              onTap: () {},
+              onTap: () {
+                GoRouter.of(context).push('/settings/contact');
+              },
             ),
             _buildSettingItem(
               icon: Icons.info_outline,
               title: 'เกี่ยวกับ RiceSafe',
-              onTap: () {},
+              onTap: () {
+                GoRouter.of(context).push('/settings/about');
+              },
             ),
 
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: OutlinedButton(
-                onPressed: () {
-                  // Mock Logout
-                  GoRouter.of(context).go('/login');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ออกจากระบบสำเร็จ')),
-                  );
+                onPressed: () async {
+                  await ref.read(authStateProvider.notifier).logout();
+                  if (context.mounted) {
+                    GoRouter.of(context).go('/login');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('ออกจากระบบสำเร็จ')),
+                    );
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.red),
