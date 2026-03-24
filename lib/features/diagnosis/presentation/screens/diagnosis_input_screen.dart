@@ -267,18 +267,25 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
                 ),
                 tooltip: 'พูดเพื่อพิมพ์',
               ),
-              child: TextField(
-                controller: _descriptionController,
-                maxLines: 4,
-                minLines: 3,
-                enabled: !isLoading,
-                decoration: const InputDecoration(
-                  hintText:
-                      'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
-                ),
-                style: textTheme.bodyLarge?.copyWith(
-                  color: riceSafeTextPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildDescriptionGuidanceBullets(textTheme),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 4,
+                    minLines: 3,
+                    enabled: !isLoading,
+                    decoration: const InputDecoration(
+                      hintText:
+                          'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
+                    ),
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: riceSafeTextPrimary,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 30),
@@ -305,6 +312,31 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDescriptionGuidanceBullets(TextTheme textTheme) {
+    final TextStyle? lineStyle = textTheme.bodySmall?.copyWith(
+      color: Colors.black54,
+      height: 1.35,
+      fontSize: 13,
+    );
+    const List<String> lines = <String>[
+      'ระยะข้าว (ถ้ารู้) เช่น กล้า / แตกกอ',
+      'ตำแหน่งบนใบ เช่น ปลายใบ / ขอบใบ / กลางใบ',
+      'ลักษณะแผล เช่น เป็นจุด / เป็นเส้นยาว',
+      'สี เช่น เหลือง / น้ำตาล',
+      'การกระจายแผล เช่น เป็นจุดๆ / ทั่วแผ่นใบ',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < lines.length; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i < lines.length - 1 ? 4 : 0),
+            child: Text('• ${lines[i]}', style: lineStyle),
+          ),
+      ],
     );
   }
 
