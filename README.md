@@ -1,5 +1,7 @@
 # RiceSafe Mobile Application
 
+![CI](https://github.com/RiceSafe/rice-safe-mobile/actions/workflows/test.yml/badge.svg)
+
 RiceSafe is a Flutter app for farmers: upload or photograph affected rice, describe symptoms, and read back a disease-oriented result and guidance from the RiceSafe backend. Signed-in use covers diagnosis, community, maps, and personal settings.
 
 ## Features
