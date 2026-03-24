@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -12,6 +13,7 @@ void main() {
   late MockDiagnosisNotifier mockNotifier;
 
   setUp(() {
+    dotenv.testLoad(fileInput: 'BASE_URL=http://localhost:8080/api\n');
     mockRouter = MockGoRouter();
     mockNotifier = MockDiagnosisNotifier();
   });
@@ -21,6 +23,7 @@ void main() {
       ProviderScope(
         overrides: [
           diagnosisProvider.overrideWith((ref) => mockNotifier),
+          diagnosisHistoryProvider.overrideWith((ref) async => []),
         ],
         child: MaterialApp(
           home: MockGoRouterProvider(
@@ -36,7 +39,12 @@ void main() {
     
     // Verify Image Upload Section
     expect(find.text('อัปโหลดรูปภาพ'), findsOneWidget);
-    expect(find.text('ถ่ายรูปหรือนำรูปภาพมาจากแกลลอรี่'), findsOneWidget);
+    expect(
+      find.text(
+        'แตะด้านล่างเพื่อเปิดกล้อง — เลือกจากแกลเลอรี่ได้ที่มุมล่างในหน้ากล้อง',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('เลือกรูปภาพ'), findsOneWidget);
 
     // Verify Description Section

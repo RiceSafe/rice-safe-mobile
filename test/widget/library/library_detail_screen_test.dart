@@ -1,45 +1,69 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ricesafe_app/features/library/data/mock_library_data.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ricesafe_app/features/library/data/disease_repository.dart';
+import 'package:ricesafe_app/features/library/data/models/library_disease.dart';
+import 'package:ricesafe_app/features/library/presentation/providers/disease_library_provider.dart';
 import 'package:ricesafe_app/features/library/presentation/screens/library_detail_screen.dart';
-import '../../helpers/test_helpers.dart';
+
+class _FakeDetailRepository extends DiseaseRepository {
+  _FakeDetailRepository(this._disease) : super(Dio(BaseOptions()));
+
+  final LibraryDisease _disease;
+
+  @override
+  Future<List<String>> getCategories() async => [];
+
+  @override
+  Future<List<LibraryDisease>> listDiseases({String? category}) async => [];
+
+  @override
+  Future<LibraryDisease> getById(String id) async {
+    if (id == 'test-1') return _disease;
+    throw Exception('not found');
+  }
+}
 
 void main() {
-  late MockGoRouter mockRouter;
-
-  setUp(() {
-    mockRouter = MockGoRouter();
-  });
-
-  testWidgets('LibraryDetailScreen displays disease info and tabs', (WidgetTester tester) async {
-    final disease = DiseaseDetail(
+  testWidgets('LibraryDetailScreen displays disease info and tabs',
+      (WidgetTester tester) async {
+    final disease = LibraryDisease(
       id: 'test-1',
+      alias: 'test',
       name: 'Test Disease',
       category: 'เชื้อรา',
-      imagePath: 'assets/mock/rice_blast.jpg',
       description: 'Test Description',
-      symptoms: [InfoSection(title: 'Symptom 1', description: 'Desc 1')],
-      prevention: [InfoSection(title: 'Prevent 1', description: 'Desc 2')],
-      treatment: [InfoSection(title: 'Treat 1', description: 'Desc 3')],
+      symptoms: const [
+        LibraryInfoSection(title: 'Symptom 1', description: 'Desc 1'),
+      ],
+      prevention: const [
+        LibraryInfoSection(title: 'Prevent 1', description: 'Desc 2'),
+      ],
+      treatment: const [
+        LibraryInfoSection(title: 'Treat 1', description: 'Desc 3'),
+      ],
     );
 
-    // Wrap in Scaffold/MaterialApp to handle Tabs
     await tester.pumpWidget(
-      MaterialApp(
-        home: LibraryDetailScreen(disease: disease),
+      ProviderScope(
+        overrides: [
+          diseaseRepositoryProvider.overrideWith(
+            (ref) => _FakeDetailRepository(disease),
+          ),
+        ],
+        child: const MaterialApp(
+          home: LibraryDetailScreen(diseaseId: 'test-1'),
+        ),
       ),
     );
+    await tester.pumpAndSettle();
 
-    // Verify Title
     expect(find.text('Test Disease'), findsOneWidget);
-
-    // Verify Tabs
     expect(find.text('ข้อมูลทั่วไป'), findsOneWidget);
     expect(find.text('อาการ'), findsOneWidget);
     expect(find.text('การป้องกัน'), findsOneWidget);
     expect(find.text('การรักษา'), findsOneWidget);
-
-    // Verify Descriptions
     expect(find.text('Test Description'), findsOneWidget);
   });
 }
