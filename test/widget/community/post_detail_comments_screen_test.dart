@@ -28,6 +28,7 @@ class _FakePostDetailRepository extends CommunityRepository {
         id: id,
         userId: 'viewer-1',
         authorName: 'Author Name',
+        authorRole: 'EXPERT',
         content: 'Post body text',
         likeCount: 2,
         commentCount: 1,
@@ -143,7 +144,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('โพสต์ของชุมชน'), findsOneWidget);
-    expect(find.text('Author Name'), findsOneWidget);
+    expect(
+      find.textContaining('Author Name', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.text('ผู้เชี่ยวชาญ'), findsOneWidget);
     expect(find.text('Post body text'), findsOneWidget);
     expect(find.text('ความคิดเห็น'), findsOneWidget);
     expect(find.text('First comment'), findsOneWidget);

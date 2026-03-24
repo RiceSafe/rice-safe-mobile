@@ -24,6 +24,7 @@ class _FakeCommunityRepository extends CommunityRepository {
         id: '11111111-1111-1111-1111-111111111111',
         userId: 'u',
         authorName: 'ทดสอบ',
+        authorRole: 'FARMER',
         content: 'ข้อความทดสอบ',
         likeCount: _liked ? 1 : 0,
         commentCount: 0,
@@ -82,6 +83,7 @@ void main() {
     expect(find.text('โพสต์'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('ข้อความทดสอบ'), findsOneWidget);
+    expect(find.text('ชาวนา'), findsOneWidget);
     expect(find.byIcon(Icons.favorite_border), findsWidgets);
     expect(find.byIcon(Icons.chat_bubble_outline), findsWidgets);
   });

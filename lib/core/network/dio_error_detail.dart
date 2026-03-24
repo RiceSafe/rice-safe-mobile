@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 
-/// ข้อความจาก body ของ error response หรือข้อความ Dio — ใช้ประกอบ [Exception] ชั้น repository
-/// การแสดงผลให้ผู้ใช้ควรผ่าน [userFacingMessage] ที่ชั้น UI/provider
+/// Parses API/Dio error text for repositories; use [userFacingMessage] in the UI.
 String dioErrorDetail(DioException e) {
   final data = e.response?.data;
   if (data is Map) {

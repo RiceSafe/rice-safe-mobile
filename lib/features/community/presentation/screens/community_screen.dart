@@ -9,6 +9,7 @@ import 'package:ricesafe_app/features/community/presentation/utils/effective_com
 import 'package:ricesafe_app/main.dart';
 import 'package:ricesafe_app/features/community/data/models/community_api_models.dart';
 import 'package:ricesafe_app/features/community/presentation/providers/community_provider.dart';
+import 'package:ricesafe_app/features/community/presentation/widgets/community_role_badge.dart';
 import 'package:ricesafe_app/features/community/presentation/widgets/post_content_with_location.dart';
 import 'package:ricesafe_app/features/community/presentation/widgets/post_image_lightbox.dart';
 
@@ -157,12 +158,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          post.authorName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                        CommunityAuthorNameWithRole(
+                          authorName: post.authorName,
+                          authorRole: post.authorRole,
                         ),
                         Text(
                           post.timeAgoLabel,

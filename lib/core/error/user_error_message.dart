@@ -3,7 +3,7 @@ import 'package:ricesafe_app/core/error/exceptions.dart';
 import 'package:ricesafe_app/core/error/failures.dart';
 import 'package:ricesafe_app/core/network/dio_error_detail.dart';
 
-/// ข้อความสั้น ๆ สำหรับแสดงให้ผู้ใช้ (ไม่ใช้ [Object.toString] ดิบ)
+/// short user-facing message; avoids raw error strings.
 String userFacingMessage(
   Object error, {
   String? contextFallback,

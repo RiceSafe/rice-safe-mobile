@@ -23,6 +23,7 @@ void main() {
         'id': id,
         'user_id': 'user-$id',
         'author_name': 'Author',
+        'author_role': 'FARMER',
         'content': 'Body',
         'like_count': 1,
         'comment_count': 2,

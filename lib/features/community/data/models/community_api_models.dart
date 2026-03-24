@@ -6,6 +6,7 @@ class CommunityPostDto {
   final String userId;
   final String authorName;
   final String? authorAvatarUrl;
+  final String? authorRole;
   final String content;
   final String? imageUrl;
   final int likeCount;
@@ -19,6 +20,7 @@ class CommunityPostDto {
     required this.userId,
     required this.authorName,
     this.authorAvatarUrl,
+    this.authorRole,
     required this.content,
     this.imageUrl,
     required this.likeCount,
@@ -34,6 +36,7 @@ class CommunityPostDto {
       userId: json['user_id'] as String,
       authorName: json['author_name'] as String? ?? '',
       authorAvatarUrl: json['author_avatar'] as String?,
+      authorRole: json['author_role'] as String?,
       content: json['content'] as String? ?? '',
       imageUrl: json['image_url'] as String?,
       likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
@@ -53,6 +56,7 @@ class CommunityPostDto {
     String? userId,
     String? authorName,
     String? authorAvatarUrl,
+    String? authorRole,
     String? content,
     String? imageUrl,
     int? likeCount,
@@ -66,6 +70,7 @@ class CommunityPostDto {
       userId: userId ?? this.userId,
       authorName: authorName ?? this.authorName,
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      authorRole: authorRole ?? this.authorRole,
       content: content ?? this.content,
       imageUrl: imageUrl ?? this.imageUrl,
       likeCount: likeCount ?? this.likeCount,
@@ -89,6 +94,7 @@ class CommunityCommentDto {
   final String userId;
   final String authorName;
   final String? authorAvatarUrl;
+  final String? authorRole;
   final String content;
   final DateTime? createdAt;
 
@@ -98,6 +104,7 @@ class CommunityCommentDto {
     required this.userId,
     required this.authorName,
     this.authorAvatarUrl,
+    this.authorRole,
     required this.content,
     this.createdAt,
   });
@@ -110,6 +117,7 @@ class CommunityCommentDto {
       // CreateComment returns Comment; list/detail returns CommentResponse.
       authorName: json['author_name'] as String? ?? 'คุณ',
       authorAvatarUrl: json['author_avatar'] as String?,
+      authorRole: json['author_role'] as String?,
       content: json['content'] as String? ?? '',
       createdAt: _parseJsonDate(json['created_at']),
     );
