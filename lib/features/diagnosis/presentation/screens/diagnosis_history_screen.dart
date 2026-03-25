@@ -9,7 +9,7 @@ import 'package:ricesafe_app/features/diagnosis/models/diagnosis_result.dart';
 import 'package:ricesafe_app/features/diagnosis/presentation/providers/diagnosis_provider.dart';
 import 'package:ricesafe_app/main.dart';
 
-/// ประวัติ `GET /diagnosis/history`
+/// Diagnosis history list (`GET /diagnosis/history`).
 class DiagnosisHistoryScreen extends ConsumerWidget {
   const DiagnosisHistoryScreen({super.key});
 

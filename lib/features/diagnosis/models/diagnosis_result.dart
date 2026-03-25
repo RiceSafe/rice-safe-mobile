@@ -14,6 +14,12 @@ class DiagnosisResult {
   final DateTime? diagnosedAt;
   final String symptoms;
 
+  /// History row [DiagnosisHistoryDto.prediction] for matching [LibraryDisease.alias] via GET /diseases.
+  final String? careLookupAlias;
+
+  /// `info_message` from `POST /diagnosis` (history API does not send this).
+  final String? apiInfoMessage;
+
   DiagnosisResult({
     required this.name,
     required this.confidence,
@@ -24,6 +30,8 @@ class DiagnosisResult {
     this.diagnosisId,
     this.diagnosedAt,
     this.symptoms = '',
+    this.careLookupAlias,
+    this.apiInfoMessage,
   });
 
   factory DiagnosisResult.fromJson(Map<String, dynamic> json) {
@@ -36,7 +44,7 @@ class DiagnosisResult {
     );
   }
 
-  /// สรุปจากแถวประวัติ (ไม่มีรายละเอียดเต็มจนกว่าจะมี GET รายการเดียว)
+  /// From a history API row; care copy may be merged from GET /diseases on the result screen.
   factory DiagnosisResult.fromHistory(DiagnosisHistoryDto h) {
     final name = DiagnosisBackendParser.displayTitleForHistory(
       prediction: h.prediction,
@@ -54,25 +62,36 @@ class DiagnosisResult {
       diagnosisId: h.id.isNotEmpty ? h.id : null,
       diagnosedAt: h.createdAt,
       symptoms: '',
+      careLookupAlias: h.prediction.trim().isEmpty ? null : h.prediction.trim(),
     );
   }
 
   DiagnosisResult copyWith({
+    String? name,
+    String? confidence,
+    String? remedy,
+    String? treatment,
+    String? diseaseSpecificImageUrl,
     File? userUploadedImage,
     String? diagnosisId,
     DateTime? diagnosedAt,
     String? symptoms,
+    String? careLookupAlias,
+    String? apiInfoMessage,
   }) {
     return DiagnosisResult(
-      name: name,
-      confidence: confidence,
-      remedy: remedy,
-      treatment: treatment,
-      diseaseSpecificImageUrl: diseaseSpecificImageUrl,
+      name: name ?? this.name,
+      confidence: confidence ?? this.confidence,
+      remedy: remedy ?? this.remedy,
+      treatment: treatment ?? this.treatment,
+      diseaseSpecificImageUrl:
+          diseaseSpecificImageUrl ?? this.diseaseSpecificImageUrl,
       userUploadedImage: userUploadedImage ?? this.userUploadedImage,
       diagnosisId: diagnosisId ?? this.diagnosisId,
       diagnosedAt: diagnosedAt ?? this.diagnosedAt,
       symptoms: symptoms ?? this.symptoms,
+      careLookupAlias: careLookupAlias ?? this.careLookupAlias,
+      apiInfoMessage: apiInfoMessage ?? this.apiInfoMessage,
     );
   }
 }
