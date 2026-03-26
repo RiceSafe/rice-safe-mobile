@@ -63,6 +63,32 @@ void main() {
 
     expect(find.text('อาการที่พบ'), findsOneWidget);
     expect(find.textContaining('อาการ A'), findsOneWidget);
+    // One check per short heading line; body lines have no sub-bullet (library-style).
+    expect(find.byIcon(Icons.check_circle), findsNWidgets(3));
+    expect(find.byIcon(Icons.circle), findsNothing);
+  });
+
+  testWidgets(
+      'DiagnosisResultScreen uses check for headings only; long body is indented',
+      (WidgetTester tester) async {
+    final longBody = '${'ก' * 73} body';
+    final result = DiagnosisResult(
+      name: 'โรคทดสอบ',
+      confidence: '88.0%',
+      remedy: 'หัวข้อสั้น\n$longBody\nหัวข้อถัดไป',
+      treatment: 'ดูแล',
+      diseaseSpecificImageUrl: 'http://example.com/x.jpg',
+    );
+
+    await pumpRouterApp(
+      tester,
+      home: DiagnosisResultScreen(result: result),
+      router: mockRouter,
+    );
+
+    // Remedy: 2 heading checks + indented body without icon; treatment: 1 check.
+    expect(find.byIcon(Icons.check_circle), findsNWidgets(3));
+    expect(find.byIcon(Icons.circle), findsNothing);
   });
 
   testWidgets(

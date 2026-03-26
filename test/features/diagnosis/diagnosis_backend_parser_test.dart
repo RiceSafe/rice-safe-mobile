@@ -184,6 +184,8 @@ void main() {
       expect(r1.diagnosisId, 'abc');
       expect(r1.symptoms, '');
       expect(r1.careLookupAlias, 'rice_blast');
+      expect(r1.remedy, '');
+      expect(r1.treatment, '');
 
       final noName = DiagnosisHistoryDto(
         id: 'd',
@@ -218,6 +220,10 @@ void main() {
       final rNotRice = DiagnosisResult.fromHistory(notRice);
       expect(rNotRice.name, 'ไม่ใช่ใบข้าว');
       expect(rNotRice.careLookupAlias, 'not_rice');
+      expect(
+        rNotRice.remedy,
+        contains('สรุปจากประวัติการวินิจฉัย'),
+      );
 
       final other = DiagnosisHistoryDto(
         id: 'f',
@@ -291,7 +297,47 @@ void main() {
       expect(c.remedy, contains('ฉีดพ่น'));
       expect(c.treatment, contains('ป้องกัน'));
       expect(c.treatment, contains('พันธุ์ต้านทาน'));
-      expect(c.treatment, contains('แพ้ทางลม'));
+      expect(c.treatment, isNot(contains('แพ้ทางลม')));
+    });
+
+    test(
+        'fromBackendJson disease_result ignores spread_details for treatment string',
+        () {
+      final jsonOnlySpread = {
+        'prediction': 'blast',
+        'info_message': '',
+        'confidence': 0.9,
+        'image_url': 'https://example.com/u.jpg',
+        'disease_result': {
+          'name': 'โรคทดสอบ',
+          'symptoms': [],
+          'treatment': [],
+          'prevention': [],
+          'spread_details': 'ข้อความการแพร่ระบาดไม่ควรอยู่ในการควบคุมดูแล',
+        },
+      };
+      final rSpread = DiagnosisBackendParser.fromBackendJson(jsonOnlySpread);
+      expect(rSpread.treatment, 'ไม่มีข้อมูลการควบคุมดูแล');
+      expect(rSpread.treatment, isNot(contains('แพร่ระบาด')));
+
+      final jsonMixed = {
+        'prediction': 'blast',
+        'info_message': '',
+        'confidence': 0.9,
+        'image_url': '',
+        'disease_result': {
+          'name': 'x',
+          'symptoms': [],
+          'treatment': [],
+          'prevention': [
+            {'title': 'ป้องกัน', 'description': 'ใช้พันธุ์ต้านทาน'},
+          ],
+          'spread_details': 'ลมและเมล็ด',
+        },
+      };
+      final rMixed = DiagnosisBackendParser.fromBackendJson(jsonMixed);
+      expect(rMixed.treatment, contains('ป้องกัน'));
+      expect(rMixed.treatment, isNot(contains('ลมและเมล็ด')));
     });
 
     test('applyLibraryCareIfMatched updates result when alias matches', () {
