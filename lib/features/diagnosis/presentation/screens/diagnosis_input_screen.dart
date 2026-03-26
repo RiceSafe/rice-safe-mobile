@@ -281,22 +281,6 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildDescriptionGuidanceBullets(textTheme),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _descriptionController,
-                    maxLines: 4,
-                    minLines: 3,
-                    enabled: !isLoading,
-                    decoration: const InputDecoration(
-                      hintText:
-                          'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
-                    ),
-                    style: textTheme.bodyLarge?.copyWith(
-                      color: riceSafeTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   Text(
                     'ระยะการเจริญของข้าว',
                     style: textTheme.titleSmall?.copyWith(
@@ -339,6 +323,22 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
                         isLoading
                             ? null
                             : (v) => setState(() => _selectedRiceGrowthStage = v),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDescriptionGuidanceBullets(textTheme),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 4,
+                    minLines: 3,
+                    enabled: !isLoading,
+                    decoration: const InputDecoration(
+                      hintText:
+                          'อธิบายลักษณะหรืออาการโรคที่พบเห็น (กดไมค์เพื่อพูด)',
+                    ),
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: riceSafeTextPrimary,
+                    ),
                   ),
                 ],
               ),

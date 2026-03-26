@@ -11,6 +11,13 @@ import '../../../library/presentation/providers/disease_library_provider.dart';
 import '../../../../main.dart';
 
 class DiagnosisResultScreen extends ConsumerWidget {
+  /// Lines longer than this are always treated as body (indented, no icon).
+  /// Short lines after a long line start a new heading (check icon).
+  static const int _headingLineMaxChars = 72;
+
+  /// check_circle (20) + gap — body lines align like library detail description.
+  static const double _bodyIndentUnderHeading = 20.0 + 8.0;
+
   final DiagnosisResult result;
 
   const DiagnosisResultScreen({super.key, required this.result});
@@ -22,6 +29,13 @@ class DiagnosisResultScreen extends ConsumerWidget {
     return text.split('\n').where((step) => step.trim().isNotEmpty).map((step) {
       return step.trim().replaceFirst(RegExp(r'^\d+\.\s*'), '').trim();
     }).toList();
+  }
+
+  bool _isHeadingLine(int index, String line, List<String> lines) {
+    final int len = line.length;
+    if (len > _headingLineMaxChars) return false;
+    if (index == 0) return true;
+    return lines[index - 1].length > _headingLineMaxChars;
   }
 
   Widget _buildSectionCard(
@@ -60,41 +74,64 @@ class DiagnosisResultScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildMultiLineLineRow(
+    TextTheme textTheme,
+    int index,
+    List<String> lines,
+  ) {
+    final bool heading = _isHeadingLine(index, lines[index], lines);
+    if (!heading) {
+      return Padding(
+        padding: const EdgeInsets.only(left: _bodyIndentUnderHeading),
+        child: Text(
+          lines[index],
+          style: textTheme.bodyLarge?.copyWith(
+            color: riceSafeTextPrimary,
+            height: 1.5,
+          ),
+        ),
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(right: 8.0, top: 3.0),
+          child: Icon(
+            Icons.check_circle,
+            size: 20,
+            color: Colors.black,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            lines[index],
+            style: textTheme.bodyLarge?.copyWith(
+              color: riceSafeTextPrimary,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMultiLineTextContent(BuildContext context, String text) {
-    List<String> lines = _splitStringToList(text);
+    final List<String> lines = _splitStringToList(text);
     if (lines.isEmpty) {
       return Text("ไม่มีข้อมูล", style: Theme.of(context).textTheme.bodyMedium);
     }
+    final TextTheme textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          lines
-              .map(
-                (line) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(right: 8.0, top: 3.0),
-                        child: Icon(
-                          Icons.check_circle,
-                          size: 20,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          line,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: riceSafeTextPrimary),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
+      children: [
+        for (int i = 0; i < lines.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6.0),
+            child: _buildMultiLineLineRow(textTheme, i, lines),
+          ),
+      ],
     );
   }
 
@@ -247,44 +284,46 @@ class DiagnosisResultScreen extends ConsumerWidget {
 
             if (!compact) ...[
               const SizedBox(height: 24),
+              if (!(fetchCare && careLoading)) ...[
+                if (display.symptoms.trim().isNotEmpty) ...[
+                  _buildSectionCard(
+                    context,
+                    icon: Icons.healing_outlined,
+                    title: 'อาการที่พบ',
+                    content:
+                        _buildMultiLineTextContent(context, display.symptoms),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
-              if (display.symptoms.trim().isNotEmpty) ...[
-                _buildSectionCard(
-                  context,
-                  icon: Icons.healing_outlined,
-                  title: 'อาการที่พบ',
-                  content:
-                      _buildMultiLineTextContent(context, display.symptoms),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Text(
-                  'คำแนะนำการรักษา',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'คำแนะนำการรักษา',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
 
-              _buildSectionCard(
-                context,
-                icon: Icons.science_outlined,
-                title: 'วิธีการรักษา',
-                content: _buildMultiLineTextContent(context, display.remedy),
-              ),
+                _buildSectionCard(
+                  context,
+                  icon: Icons.science_outlined,
+                  title: 'วิธีการรักษา',
+                  content: _buildMultiLineTextContent(context, display.remedy),
+                ),
 
-              _buildSectionCard(
-                context,
-                icon: Icons.eco_outlined,
-                title: 'การควบคุมดูแล',
-                content: _buildMultiLineTextContent(context, display.treatment),
-              ),
+                _buildSectionCard(
+                  context,
+                  icon: Icons.eco_outlined,
+                  title: 'การควบคุมดูแล',
+                  content:
+                      _buildMultiLineTextContent(context, display.treatment),
+                ),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 30),
+              ],
             ],
             if (compact) const SizedBox(height: 24),
 

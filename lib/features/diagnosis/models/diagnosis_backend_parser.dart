@@ -37,11 +37,6 @@ class DiagnosisBackendParser {
     final symptoms = joinLibraryInfoSections(d.symptoms);
     var remedy = joinLibraryInfoSections(d.treatment);
     var treatment = joinLibraryInfoSections(d.prevention);
-    final spread = d.spreadDetails?.trim();
-    if (spread != null && spread.isNotEmpty) {
-      treatment =
-          treatment.isEmpty ? spread : '$treatment\n\n$spread';
-    }
     if (treatment.isEmpty) {
       treatment = 'ไม่มีข้อมูลการควบคุมดูแล';
     }
@@ -195,12 +190,6 @@ class DiagnosisBackendParser {
       final symptoms = joinInfoSections(dm['symptoms']);
       var remedy = joinInfoSections(dm['treatment']);
       var treatment = joinInfoSections(dm['prevention']);
-      final spread = dm['spread_details']?.toString().trim();
-      if (spread != null && spread.isNotEmpty) {
-        treatment = treatment.isEmpty
-            ? spread
-            : '$treatment\n\n$spread';
-      }
       if (remedy.isEmpty && info.isNotEmpty) remedy = info;
       if (treatment.isEmpty) {
         treatment = 'ไม่มีข้อมูลการควบคุมดูแล';

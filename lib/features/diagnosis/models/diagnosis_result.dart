@@ -50,13 +50,19 @@ class DiagnosisResult {
       prediction: h.prediction,
       diseaseName: h.diseaseName,
     );
+    final fetchCare =
+        DiagnosisBackendParser.shouldFetchCareFromLibrary(h.prediction);
     return DiagnosisResult(
       name: name,
       confidence: DiagnosisBackendParser.formatConfidence(h.confidence),
       remedy:
-          'สรุปจากประวัติการวินิจฉัย — รายละเอียดเชิงลึกแสดงหลังวินิจฉัยในแอป',
+          fetchCare
+              ? ''
+              : 'สรุปจากประวัติการวินิจฉัย — รายละเอียดเชิงลึกแสดงหลังวินิจฉัยในแอป',
       treatment:
-          'ดูข้อมูลเพิ่มเติมได้จากคลังความรู้ หรือวินิจฉัยใหม่ด้วยรูปปัจจุบัน',
+          fetchCare
+              ? ''
+              : 'ดูข้อมูลเพิ่มเติมได้จากคลังความรู้ หรือวินิจฉัยใหม่ด้วยรูปปัจจุบัน',
       diseaseSpecificImageUrl: h.imageUrl.isNotEmpty ? h.imageUrl : null,
       userUploadedImage: null,
       diagnosisId: h.id.isNotEmpty ? h.id : null,
