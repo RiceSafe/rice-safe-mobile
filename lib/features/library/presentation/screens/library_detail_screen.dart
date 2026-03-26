@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ricesafe_app/core/error/user_error_message.dart';
+import 'package:ricesafe_app/core/widgets/linkable_text.dart';
 import 'package:ricesafe_app/main.dart';
 import 'package:ricesafe_app/features/library/data/models/library_disease.dart';
 import 'package:ricesafe_app/features/library/presentation/providers/disease_library_provider.dart';
@@ -84,14 +85,22 @@ class _LibraryDetailBody extends StatelessWidget {
     if (disease.symptoms.isNotEmpty) {
       tabs.add(const Tab(text: 'อาการ'));
       tabViews.add(
-        _buildSectionTab(disease.symptoms, Icons.check_circle, riceSafeGreen),
+        _buildSectionTab(
+          disease.symptoms,
+          Icons.check_circle,
+          riceSafeGreen,
+        ),
       );
     }
 
     if (disease.prevention.isNotEmpty) {
       tabs.add(const Tab(text: 'การป้องกัน'));
       tabViews.add(
-        _buildSectionTab(disease.prevention, Icons.shield, Colors.blueAccent),
+        _buildSectionTab(
+          disease.prevention,
+          Icons.shield,
+          Colors.blueAccent,
+        ),
       );
     }
 
@@ -199,18 +208,19 @@ class _LibraryDetailBody extends StatelessWidget {
   }
 
   Widget _buildGeneralTab() {
+    const bodyStyle = TextStyle(
+      fontSize: 16,
+      color: Colors.black87,
+      height: 1.5,
+    );
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            disease.description,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-              height: 1.5,
-            ),
+          LinkableText(
+            text: disease.description,
+            style: bodyStyle,
           ),
           if (disease.spreadDetails != null &&
               disease.spreadDetails!.isNotEmpty) ...[
@@ -224,13 +234,9 @@ class _LibraryDetailBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              disease.spreadDetails!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-                height: 1.5,
-              ),
+            LinkableText(
+              text: disease.spreadDetails!,
+              style: bodyStyle,
             ),
           ],
           if (disease.matchWeather.isNotEmpty) ...[
@@ -318,8 +324,8 @@ class _LibraryDetailBody extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        section.description,
+                      LinkableText(
+                        text: section.description,
                         style: const TextStyle(
                           color: Colors.black87,
                           height: 1.5,

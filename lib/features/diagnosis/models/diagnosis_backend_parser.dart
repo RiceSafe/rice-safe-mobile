@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ricesafe_app/features/diagnosis/models/diagnosis_result.dart';
+import 'package:ricesafe_app/features/library/data/models/library_disease.dart';
 
 /// Maps RiceSafe `POST /diagnosis` JSON ([DiagnosisResponse]) to [DiagnosisResult].
 class DiagnosisBackendParser {
@@ -14,6 +15,77 @@ class DiagnosisBackendParser {
       return '${pct.toStringAsFixed(1)}%';
     }
     return raw.toString();
+  }
+
+  /// Same layout as API JSON arrays for [joinInfoSections].
+  static String joinLibraryInfoSections(List<LibraryInfoSection> sections) {
+    if (sections.isEmpty) return '';
+    final maps = sections
+        .map(
+          (s) => <String, dynamic>{
+            'title': s.title,
+            'description': s.description,
+          },
+        )
+        .toList();
+    return joinInfoSections(maps);
+  }
+
+  /// Maps library disease (GET /diseases) to the same strings as [fromBackendJson] disease_result.
+  static ({String symptoms, String remedy, String treatment})
+  careStringsFromLibraryDisease(LibraryDisease d) {
+    final symptoms = joinLibraryInfoSections(d.symptoms);
+    var remedy = joinLibraryInfoSections(d.treatment);
+    var treatment = joinLibraryInfoSections(d.prevention);
+    if (treatment.isEmpty) {
+      treatment = 'ไม่มีข้อมูลการควบคุมดูแล';
+    }
+    if (remedy.isEmpty) {
+      remedy = 'ไม่มีข้อมูลวิธีการรักษา';
+    }
+    return (symptoms: symptoms, remedy: remedy, treatment: treatment);
+  }
+
+  static const Set<String> _careFetchSkipPredictions = {
+    'not_rice',
+    'not_clear',
+    'other_diseases',
+    'normal',
+  };
+
+  static bool shouldFetchCareFromLibrary(String? careLookupAlias) {
+    if (careLookupAlias == null) return false;
+    final a = careLookupAlias.trim();
+    if (a.isEmpty) return false;
+    return !_careFetchSkipPredictions.contains(a);
+  }
+
+  /// True when [careLookupAlias] is a non-disease prediction (no care section below image).
+  static bool isNonDiseasePredictionAlias(String? careLookupAlias) {
+    if (careLookupAlias == null) return false;
+    final a = careLookupAlias.trim();
+    if (a.isEmpty) return false;
+    return _careFetchSkipPredictions.contains(a);
+  }
+
+  static DiagnosisResult applyLibraryCareIfMatched(
+    DiagnosisResult base,
+    List<LibraryDisease> diseases,
+  ) {
+    final alias = base.careLookupAlias;
+    if (alias == null || alias.isEmpty) return base;
+    final a = alias.trim();
+    for (final d in diseases) {
+      if (d.alias.trim() == a) {
+        final c = careStringsFromLibraryDisease(d);
+        return base.copyWith(
+          remedy: c.remedy,
+          treatment: c.treatment,
+          symptoms: c.symptoms,
+        );
+      }
+    }
+    return base;
   }
 
   static String joinInfoSections(dynamic raw) {
@@ -74,8 +146,6 @@ class DiagnosisBackendParser {
   }
 
   /// History list: use `disease_name` from API (`d.name` when joined) for real diseases.
-  /// Map only [not_rice], [not_clear], [other_diseases] (no DB row). [normal] uses
-  /// [titleWhenNoDisease] before [diseaseName] so SQL `COALESCE(..., 'ปกติ/โรคอื่นๆ')` is not shown.
   static String displayTitleForHistory({
     required String prediction,
     required String diseaseName,
@@ -109,38 +179,39 @@ class DiagnosisBackendParser {
     final diagnosisId = json['diagnosis_id']?.toString();
     final diagnosedAt = parseCreatedAt(json['created_at']);
 
+    final careLookupAlias =
+        prediction.trim().isEmpty ? null : prediction.trim();
+    final apiInfoMessage = info.trim().isEmpty ? null : info.trim();
+
     final dr = json['disease_result'];
     if (dr is Map) {
       final dm = Map<String, dynamic>.from(dr);
       final name = dm['name']?.toString() ?? prediction;
-      final diseaseImg = dm['image_url']?.toString();
       final symptoms = joinInfoSections(dm['symptoms']);
       var remedy = joinInfoSections(dm['treatment']);
       var treatment = joinInfoSections(dm['prevention']);
-      final spread = dm['spread_details']?.toString().trim();
-      if (spread != null && spread.isNotEmpty) {
-        treatment = treatment.isEmpty
-            ? spread
-            : '$treatment\n\n$spread';
-      }
       if (remedy.isEmpty && info.isNotEmpty) remedy = info;
       if (treatment.isEmpty) {
         treatment = 'ไม่มีข้อมูลการควบคุมดูแล';
       }
+
+      final userPhotoUrl =
+          topImageUrl != null && topImageUrl.isNotEmpty ? topImageUrl : null;
 
       return DiagnosisResult(
         name: name,
         confidence: confStr,
         remedy: remedy.isEmpty ? 'ไม่มีข้อมูลวิธีการรักษา' : remedy,
         treatment: treatment,
-        diseaseSpecificImageUrl:
-            (diseaseImg != null && diseaseImg.isNotEmpty) ? diseaseImg : null,
+        diseaseSpecificImageUrl: userPhotoUrl,
         userUploadedImage: userUploadedImage,
         diagnosisId: diagnosisId != null && diagnosisId.isNotEmpty
             ? diagnosisId
             : null,
         diagnosedAt: diagnosedAt,
         symptoms: symptoms,
+        careLookupAlias: careLookupAlias,
+        apiInfoMessage: apiInfoMessage,
       );
     }
 
@@ -162,6 +233,8 @@ class DiagnosisBackendParser {
           : null,
       diagnosedAt: diagnosedAt,
       symptoms: '',
+      careLookupAlias: careLookupAlias,
+      apiInfoMessage: apiInfoMessage,
     );
   }
 }

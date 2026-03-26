@@ -90,6 +90,8 @@
 	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>https</string>
+		<string>http</string>
 		<string>mailto</string>
 		<string>lineauth2</string>
 		<string>line</string>

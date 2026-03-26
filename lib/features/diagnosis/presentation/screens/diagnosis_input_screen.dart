@@ -12,6 +12,7 @@ import 'package:ricesafe_app/features/diagnosis/data/models/diagnosis_history_dt
 import 'package:ricesafe_app/features/diagnosis/models/diagnosis_backend_parser.dart';
 import 'package:ricesafe_app/features/diagnosis/models/diagnosis_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../constants/rice_growth_stage_options.dart';
 import '../providers/diagnosis_provider.dart';
 import 'diagnosis_camera_capture_screen.dart';
 import '../../../../main.dart';
@@ -27,6 +28,7 @@ class DiagnosisInputScreen extends ConsumerStatefulWidget {
 class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   File? _selectedImage;
+  String? _selectedRiceGrowthStage;
 
   // Speech to Text
   late stt.SpeechToText _speech;
@@ -60,6 +62,7 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
   void _resetInputFields() {
     setState(() {
       _selectedImage = null;
+      _selectedRiceGrowthStage = null;
       _descriptionController.clear();
     });
     ref.read(diagnosisProvider.notifier).reset();
@@ -114,9 +117,17 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
       return;
     }
 
+    final String descriptionForApi = _composeDescriptionForApi(description);
+
     ref
         .read(diagnosisProvider.notifier)
-        .diagnoseDisease(image: _selectedImage!, description: description);
+        .diagnoseDisease(image: _selectedImage!, description: descriptionForApi);
+  }
+
+  String _composeDescriptionForApi(String trimmedBody) {
+    final stage = _selectedRiceGrowthStage;
+    if (stage == null || stage.isEmpty) return trimmedBody;
+    return 'ใน$stage\n\n$trimmedBody';
   }
 
   @override
@@ -270,6 +281,50 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    'ระยะการเจริญของข้าว',
+                    style: textTheme.titleSmall?.copyWith(
+                      color: riceSafeTextPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'เลือกช่วงระยะการเจริญพันธุ์ของข้าวที่ถ่าย (ไม่บังคับ)',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: Colors.black54,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String?>(
+                    value: _selectedRiceGrowthStage,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      hintText: RiceGrowthStageOptions.unspecifiedLabel,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                    items: <DropdownMenuItem<String?>>[
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(RiceGrowthStageOptions.unspecifiedLabel),
+                      ),
+                      ...RiceGrowthStageOptions.presets.map(
+                        (p) => DropdownMenuItem<String?>(value: p, child: Text(p)),
+                      ),
+                    ],
+                    onChanged:
+                        isLoading
+                            ? null
+                            : (v) => setState(() => _selectedRiceGrowthStage = v),
+                  ),
+                  const SizedBox(height: 12),
                   _buildDescriptionGuidanceBullets(textTheme),
                   const SizedBox(height: 12),
                   TextField(
@@ -322,7 +377,6 @@ class _DiagnosisInputScreenState extends ConsumerState<DiagnosisInputScreen> {
       fontSize: 13,
     );
     const List<String> lines = <String>[
-      'ระยะข้าว (ถ้ารู้) เช่น กล้า / แตกกอ',
       'ตำแหน่งบนใบ เช่น ปลายใบ / ขอบใบ / กลางใบ',
       'ลักษณะแผล เช่น เป็นจุด / เป็นเส้นยาว',
       'สี เช่น เหลือง / น้ำตาล',

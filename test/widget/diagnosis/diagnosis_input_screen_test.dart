@@ -49,6 +49,8 @@ void main() {
 
     // Verify Description Section
     expect(find.text('อธิบายลักษณะหรืออาการโรค'), findsOneWidget);
+    expect(find.text('ระยะการเจริญของข้าว'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<String?>), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
 
     // Verify Diagnose Button
